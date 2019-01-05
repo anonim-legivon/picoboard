@@ -1,3 +1,5 @@
+import logging
+
 from .base import *
 from .base import env
 
@@ -13,6 +15,25 @@ ALLOWED_HOSTS = [
 
 DATABASES['default']['HOST'] = 'localhost'
 DATABASES['default']['PORT'] = 15432
+
+MIDDLEWARE.insert(0, 'nplusone.ext.django.NPlusOneMiddleware')
+NPLUSONE_LOGGER = logging.getLogger('nplusone')
+NPLUSONE_LOG_LEVEL = logging.WARN
+
+LOGGING = {
+    'version': 1,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'nplusone': {
+            'handlers': ['console'],
+            'level': 'WARN',
+        },
+    },
+}
 
 # Celery
 # ------------------------------------------------------------------------------
