@@ -24,9 +24,13 @@ class ThreadAdmin(admin.ModelAdmin):
             super(ThreadAdmin, self).save_related(request, form, formsets,
                                                   change)
 
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related('posts')
+
 
 class PostAdmin(admin.ModelAdmin):
     list_display = ('thread', 'message', 'date')
+    list_select_related = ('thread',)
 
 
 admin.site.register(Post, PostAdmin)
