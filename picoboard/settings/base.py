@@ -11,22 +11,22 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 """
 
 import os
+import sys
 
 import environ
 from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-ROOT_DIR = environ.Path(__file__) - 3
-APPS_DIR = ROOT_DIR.path('apps')
+BASE_DIR = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 
 env = environ.Env()
-env.read_env(str(ROOT_DIR.path('.env')))
+env.read_env(os.path.join(BASE_DIR, '.env'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '^%!2=zdc47h_h#vm8zk0+plgvvi^810d5i@io64zah&tal2^^^'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool('DJANGO_DEBUG', False)
@@ -46,7 +46,7 @@ THIRD_PARTY_APPS = [
     'corsheaders',
 ]
 LOCAL_APPS = [
-    'apps.board.apps.BoardConfig',
+    'board',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -67,8 +67,7 @@ ROOT_URLCONF = 'picoboard.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(ROOT_DIR, '../../templates')]
-        ,
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -135,7 +134,7 @@ ADMIN_SITE_HEADER = 'PICOBOARD'
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
-VAR_PATH = os.path.join(ROOT_DIR, 'etc')
+VAR_PATH = os.path.join(BASE_DIR, 'etc')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(VAR_PATH, 'media')
 STATIC_URL = '/static/'
@@ -175,5 +174,6 @@ REST_FRAMEWORK = {
         'django_filters.rest_framework.DjangoFilterBackend',
     ),
     'SEARCH_PARAM': 'q',
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 20,
 }
-
