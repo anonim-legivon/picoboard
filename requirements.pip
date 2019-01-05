@@ -8,10 +8,13 @@ celery==4.2.1
 coverage==4.5.2
 Django==2.1.5
 django-cors-headers==2.4.0
+django-environ==0.4.5
 django-extensions==2.1.4
+django-filter==2.0.0
 django-model-utils==3.1.2
 django-redis==4.10.0
 djangorestframework==3.9.0
+drf-nested-routers==0.91
 isort==4.3.4
 kombu==4.2.2.post1
 lazy-object-proxy==1.3.1
