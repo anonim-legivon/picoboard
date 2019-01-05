@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  postgres:
+    image: postgres:10-alpine
+    ports:
+      - "15432:5432"
+    volumes:
+      - ./etc/postgresql-data:/var/lib/postgresql/data
+    env_file:
+      - ./.env
+
+  redis:
+    image: redis:5-alpine
+    ports:
+      - "16379:6379"
+
+  minio:
+    image: minio/minio
+    volumes:
+       - ./etc/minio-data:/data
+    ports:
+      - "9000:9000"
+    environment:
+      - MINIO_ACCESS_KEY=picoboard
+      - MINIO_SECRET_KEY=picoboard_secret
+    command: server --address 0.0.0.0:9000 /data
