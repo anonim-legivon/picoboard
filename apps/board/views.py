@@ -19,7 +19,7 @@ from .serializers import (
 class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
     pagination_class = ThreadLimitOffsetPagination
 
-    lookup_field = 'posts__post_id'
+    lookup_field = 'posts__num'
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -72,7 +72,7 @@ class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
     @action(detail=True, methods=['post'])
     def post(self, request, **kwargs):
         board = kwargs.get('board_name')
-        thread_id = kwargs.get('posts__post_id')
+        thread_id = kwargs.get('posts__num')
         serializer = PostSerializer(
             data=request.data,
             context={'board': board, 'thread': thread_id}

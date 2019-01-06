@@ -43,9 +43,9 @@ class Board(models.Model):
         return f'{self.name}'
 
     @property
-    def last_pid(self):
+    def last_num(self):
         try:
-            pid = Post.objects.filter(thread__board=self.id).latest().post_id
+            pid = Post.objects.filter(thread__board=self.id).latest().num
         except Post.DoesNotExist:
             pid = 0
         return pid
@@ -80,7 +80,7 @@ class Thread(models.Model):
     @cached_property
     def thread_id(self):
         if self.op_post:
-            return self.op_post.post_id
+            return self.op_post.num
         else:
             return -1
 
@@ -101,7 +101,7 @@ class Thread(models.Model):
 
 
 class Post(models.Model):
-    post_id = models.PositiveIntegerField(
+    num = models.PositiveIntegerField(
         _('id поста'), blank=True,
         db_index=True
     )
@@ -109,6 +109,9 @@ class Post(models.Model):
         Thread, verbose_name=_('тред'),
         related_name='posts',
         on_delete=models.CASCADE
+    )
+    parent = models.PositiveIntegerField(
+        _('родитель'), blank=True, db_index=True
     )
     is_op_post = models.BooleanField(_('первый пост в треде'), default=False)
     date = models.DateTimeField(_('время'), auto_now_add=True)
@@ -140,10 +143,10 @@ class Post(models.Model):
         ordering = ['id']
 
     def __str__(self):
-        return f'{self.post_id}'
+        return f'{self.num}'
 
     def save(self, **kwargs):
-        self.post_id = self.thread.board.last_pid + 1
+        self.num = self.thread.board.last_num + 1
         # TODO: Проверить на race condition при сохранении
         self.thread.lasthit = timezone.now()
         self.thread.save()

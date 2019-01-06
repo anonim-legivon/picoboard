@@ -9,7 +9,10 @@ class PostSerializer(serializers.ModelSerializer):
     class Meta:
         model = Post
         exclude = ('id', 'thread',)
-        read_only_fields = ('tripcode', 'is_deleted', 'post_id',)
+        read_only_fields = (
+            'tripcode', 'is_deleted', 'num',
+            'parent', 'is_op_post',
+        )
         extra_kwargs = {
             'password': {'write_only': True},
             'ip': {'write_only': True},
@@ -21,12 +24,16 @@ class PostSerializer(serializers.ModelSerializer):
         thread = self.context.get('thread')
 
         if thread:
-            thread = Thread.objects.get(board=board, posts__post_id=thread)
+            thread = Thread.objects.get(board=board, posts__num=thread)
             is_op_post = False
+            parent = thread.thread_id
         else:
             thread = Thread.objects.create(board=board)
             is_op_post = True
+            parent = 0
 
-        post = Post.objects.create(thread=thread, is_op_post=is_op_post,
-                                   **validated_data)
+        post = Post.objects.create(
+            thread=thread, is_op_post=is_op_post, parent=parent,
+            **validated_data
+        )
         return post
