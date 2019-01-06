@@ -2,7 +2,7 @@ from django.conf.urls import url
 from django.urls import include
 from rest_framework_nested import routers
 
-from apps.board.views import BoardViewSet, CategoryViewSet, ThreadViewSet
+from .views import BoardViewSet, CategoryViewSet, ThreadViewSet
 
 router = routers.SimpleRouter()
 router.register(r'boards', BoardViewSet)

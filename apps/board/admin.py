@@ -3,11 +3,9 @@ from django.contrib import admin
 from .models import Board, Category, Post, Thread
 
 
-# Register your models here.
-
 class PostsInline(admin.TabularInline):
     model = Post
-    fields = ('is_op_post', 'date', 'topic', 'message', 'ip')
+    fields = ('is_op_post', 'date', 'subject', 'comment', 'ip')
     readonly_fields = ('date', 'is_op_post')
     fk_name = 'thread'
 
@@ -29,7 +27,7 @@ class ThreadAdmin(admin.ModelAdmin):
 
 
 class PostAdmin(admin.ModelAdmin):
-    list_display = ('thread', 'message', 'date')
+    list_display = ('thread', 'comment', 'date')
     list_select_related = ('thread',)
 
 

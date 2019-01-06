@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
@@ -32,6 +33,7 @@ class Board(models.Model):
     filesize_limit = models.PositiveIntegerField(
         _('лимит на размер файла'), default=2 ** 20 * 5
     )
+    trip_permit = models.BooleanField(_('разрешены трип коды'), default=False)
 
     class Meta:
         verbose_name = _('доска')
@@ -58,6 +60,7 @@ class Thread(models.Model):
     is_pinned = models.BooleanField(_('закреплен'), default=False)
     is_closed = models.BooleanField(_('закрыт'), default=False)
     is_deleted = models.BooleanField(_('удален'), default=False)
+    lasthit = models.DateTimeField(_('последний пост'), auto_now=True)
 
     class Meta:
         verbose_name = _('тред')
@@ -92,27 +95,43 @@ class Thread(models.Model):
         elif t_length >= 5:
             return thread_posts[t_length - 3:t_length]
 
-
-class PostManager(models.Manager):
-    pass
+    @property
+    def posts_count(self):
+        return self.posts.count()
 
 
 class Post(models.Model):
-    post_id = models.PositiveIntegerField(_('id поста'), blank=True,
-                                          db_index=True)
-    thread = models.ForeignKey(Thread, verbose_name=_('тред'),
-                               related_name='posts', blank=True, null=True,
-                               on_delete=models.CASCADE)
+    post_id = models.PositiveIntegerField(
+        _('id поста'), blank=True,
+        db_index=True
+    )
+    thread = models.ForeignKey(
+        Thread, verbose_name=_('тред'),
+        related_name='posts',
+        on_delete=models.CASCADE
+    )
     is_op_post = models.BooleanField(_('первый пост в треде'), default=False)
-    date = models.DateTimeField(_('время'), auto_now_add=True, blank=True)
+    date = models.DateTimeField(_('время'), auto_now_add=True)
     is_deleted = models.BooleanField(_('удален'), default=False)
     ip = models.GenericIPAddressField('IP', blank=True, null=True)
-    poster = models.CharField(_('постер'), max_length=32, blank=True, null=True)
-    tripcode = models.CharField(_('трипкод'), max_length=32, blank=True)
-    email = models.CharField(_('email'), max_length=32, blank=True)
-    topic = models.CharField(_('тема'), max_length=48, blank=True)
-    password = models.CharField(_('пароль'), max_length=64, blank=True)
-    message = models.TextField(_('сообщение'), blank=True)
+    name = models.CharField(
+        _('имя'), max_length=48, blank=True,
+        default=_('Аноним')
+    )
+    tripcode = models.CharField(
+        _('трипкод'), max_length=48, blank=True,
+        default=''
+    )
+    email = models.EmailField(_('email'), blank=True)
+    subject = models.CharField(
+        _('тема'), max_length=128, blank=True,
+        default=''
+    )
+    password = models.CharField(
+        _('пароль'), max_length=64, blank=True,
+        default=''
+    )
+    comment = models.TextField(_('сообщение'), blank=True, default='')
 
     class Meta:
         verbose_name = _('пост')
@@ -125,6 +144,9 @@ class Post(models.Model):
 
     def save(self, **kwargs):
         self.post_id = self.thread.board.last_pid + 1
+        # TODO: Проверить на race condition при сохранении
+        self.thread.lasthit = timezone.now()
+        self.thread.save()
         super(Post, self).save(**kwargs)
 
     def delete(self, **kwargs):

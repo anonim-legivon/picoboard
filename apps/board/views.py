@@ -1,26 +1,19 @@
+from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound
 from rest_framework.generics import get_object_or_404
-from rest_framework.mixins import (CreateModelMixin, ListModelMixin,
-                                   RetrieveModelMixin)
-from rest_framework.pagination import (LimitOffsetPagination)
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
 
-from .helpers import get_remote_ip
+from core.helpers import gen_tripcode, get_remote_ip
+from core.mixins import CreateListRetrieveMixin
 from .models import Board, Category, Thread
-from .serializers import (BoardSerializer, CategorySerializer, PostSerializer,
-                          ThreadPreviewSerializer, ThreadSerializer)
-
-
-class CreateListRetrieveMixin(CreateModelMixin, ListModelMixin,
-                              RetrieveModelMixin):
-    pass
-
-
-class ThreadLimitOffsetPagination(LimitOffsetPagination):
-    default_limit = 20
-    max_limit = 20
+from .pagination import ThreadLimitOffsetPagination
+from .serializers import (
+    BoardSerializer, CategorySerializer, PostSerializer,
+    ThreadPreviewSerializer, ThreadSerializer
+)
 
 
 class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
@@ -37,8 +30,13 @@ class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
     def get_queryset(self):
         qs = Thread.objects.filter(
             board__name=self.kwargs['board_name']
-        ).prefetch_related('posts')
+        )
 
+        if self.action == 'list':
+            qs.filter(posts__is_op_post=True)
+            qs = qs.order_by('-lasthit')
+
+        qs = qs.prefetch_related('posts')
         return qs
 
     def get_throttles(self):
@@ -49,14 +47,7 @@ class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())
 
-        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
-
-        assert lookup_url_kwarg in self.kwargs, (
-                'Expected view %s to be called with a URL keyword argument '
-                'named "%s". Fix your URL conf, or set the `.lookup_field` '
-                'attribute on the view correctly.' %
-                (self.__class__.__name__, lookup_url_kwarg)
-        )
+        lookup_url_kwarg = self.lookup_field
 
         filter_kwargs = {
             self.lookup_field: self.kwargs[lookup_url_kwarg],
@@ -94,6 +85,21 @@ class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
                         headers=headers)
 
     def perform_create(self, serializer, **kwargs):
+        name = serializer.validated_data.get('name')
+        board_name = serializer.context.get('board')
+
+        try:
+            board = Board.objects.get(name=board_name)
+        except Board.DoesNotExist:
+            raise NotFound
+        else:
+            serializer.context['board'] = board
+
+        if name:
+            tripcode = gen_tripcode(name, board.trip_permit)
+            kwargs['name'] = tripcode['name'] or _('Аноним')
+            kwargs['tripcode'] = tripcode['trip']
+
         serializer.save(**kwargs)
 
 
@@ -104,5 +110,5 @@ class BoardViewSet(ReadOnlyModelViewSet, GenericViewSet):
 
 
 class CategoryViewSet(ReadOnlyModelViewSet, GenericViewSet):
-    queryset = Category.objects.prefetch_related('boards')
+    queryset = Category.objects.prefetch_related('boards').order_by('-order')
     serializer_class = CategorySerializer
