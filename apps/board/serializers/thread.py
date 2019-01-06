@@ -7,7 +7,8 @@ THREAD_READ_ONLY_FIELDS = (
     'is_pinned', 'is_closed', 'is_deleted',
     'thread_id',
 )
-THREAD_EXCLUDE_FIELDS = ('id', 'board',)
+
+THREAD_EXCLUDE_FIELDS = ('id',)
 
 
 class ThreadPreviewSerializer(serializers.ModelSerializer):
@@ -16,6 +17,7 @@ class ThreadPreviewSerializer(serializers.ModelSerializer):
 
     thread_id = serializers.ReadOnlyField()
     posts_count = serializers.ReadOnlyField()
+    board = serializers.ReadOnlyField(source='board.board')
 
     class Meta:
         model = Thread
@@ -27,6 +29,7 @@ class ThreadSerializer(serializers.ModelSerializer):
     posts = PostSerializer(many=True)
 
     posts_count = serializers.ReadOnlyField()
+    board = serializers.ReadOnlyField(source='board.board')
 
     class Meta:
         model = Thread

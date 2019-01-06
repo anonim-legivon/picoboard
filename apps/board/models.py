@@ -22,7 +22,10 @@ class Board(models.Model):
         Category, verbose_name=_('категория'), related_name='boards',
         on_delete=models.CASCADE
     )
-    name = models.CharField(_('название'), max_length=32, unique=True)
+    board = models.CharField(_('название'), max_length=32, unique=True)
+    board_name = models.CharField(
+        _('название доски'), max_length=48, blank=True
+    )
     description = models.TextField(_('описание'), blank=True, default='')
     bump_limit = models.PositiveSmallIntegerField(
         _('бамп лимит'), default=500
@@ -34,13 +37,16 @@ class Board(models.Model):
         _('лимит на размер файла'), default=2 ** 20 * 5
     )
     trip_permit = models.BooleanField(_('разрешены трип коды'), default=False)
+    default_name = models.CharField(
+        _('имя в постах'), max_length=48, default=_('Аноним')
+    )
 
     class Meta:
         verbose_name = _('доска')
         verbose_name_plural = _('доски')
 
     def __str__(self):
-        return f'{self.name}'
+        return f'{self.board}'
 
     @property
     def last_num(self):
@@ -53,9 +59,8 @@ class Board(models.Model):
 
 class Thread(models.Model):
     board = models.ForeignKey(
-        Board, verbose_name=_('доска'),
-        related_name='threads',
-        on_delete=models.CASCADE
+        Board, on_delete=models.CASCADE, related_name='threads',
+        verbose_name=_('доска'),
     )
     is_pinned = models.BooleanField(_('закреплен'), default=False)
     is_closed = models.BooleanField(_('закрыт'), default=False)
@@ -106,9 +111,8 @@ class Post(models.Model):
         db_index=True
     )
     thread = models.ForeignKey(
-        Thread, verbose_name=_('тред'),
-        related_name='posts',
-        on_delete=models.CASCADE
+        Thread, on_delete=models.CASCADE, related_name='posts',
+        verbose_name=_('тред'),
     )
     parent = models.PositiveIntegerField(
         _('родитель'), blank=True, db_index=True

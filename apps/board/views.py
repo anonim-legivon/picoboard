@@ -1,13 +1,12 @@
-from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
 
 from core.helpers import gen_tripcode, get_remote_ip
 from core.mixins import CreateListRetrieveMixin
+from .exceptions import BoardNotFound
 from .models import Board, Category, Thread
 from .pagination import ThreadLimitOffsetPagination
 from .serializers import (
@@ -29,11 +28,11 @@ class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
 
     def get_queryset(self):
         qs = Thread.objects.filter(
-            board__name=self.kwargs['board_name']
+            board__board=self.kwargs['board_board']
         )
 
         if self.action == 'list':
-            qs.filter(posts__is_op_post=True)
+            qs = qs.select_related('board')
             qs = qs.order_by('-lasthit')
 
         qs = qs.prefetch_related('posts')
@@ -59,46 +58,48 @@ class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
 
         return obj
 
+    # TODO: create и post совпадают, возможно стоит вынести в отдельную функцию,
+    #       но в дальнейшем может измениться
     def create(self, request, *args, **kwargs):
-        board = kwargs.get('board_name')
-        serializer = PostSerializer(data=request.data, context={'board': board})
+        serializer = PostSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        ip = get_remote_ip(request)
-        self.perform_create(serializer, ip=ip)
+        self.perform_create(serializer)
+
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED,
                         headers=headers)
 
     @action(detail=True, methods=['post'])
-    def post(self, request, **kwargs):
-        board = kwargs.get('board_name')
-        thread_id = kwargs.get('posts__num')
-        serializer = PostSerializer(
-            data=request.data,
-            context={'board': board, 'thread': thread_id}
-        )
+    def post(self, request, *args, **kwargs):
+        serializer = PostSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        ip = get_remote_ip(request)
-        self.perform_create(serializer, ip=ip)
+        self.perform_create(serializer)
+
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED,
                         headers=headers)
 
     def perform_create(self, serializer, **kwargs):
+        board_name = self.kwargs.get('board_board')
+        thread_id = self.kwargs.get('posts__num')
+
         name = serializer.validated_data.get('name')
-        board_name = serializer.context.get('board')
 
         try:
-            board = Board.objects.get(name=board_name)
+            board = Board.objects.get(board=board_name)
         except Board.DoesNotExist:
-            raise NotFound
+            raise BoardNotFound
         else:
             serializer.context['board'] = board
+            serializer.context['thread'] = thread_id
 
         if name:
             tripcode = gen_tripcode(name, board.trip_permit)
-            kwargs['name'] = tripcode['name'] or _('Аноним')
+
+            kwargs['name'] = tripcode['name'] or board.default_name
             kwargs['tripcode'] = tripcode['trip']
+
+        kwargs['ip'] = get_remote_ip(self.request)
 
         serializer.save(**kwargs)
 
@@ -106,7 +107,7 @@ class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
 class BoardViewSet(ReadOnlyModelViewSet, GenericViewSet):
     queryset = Board.objects.all()
     serializer_class = BoardSerializer
-    lookup_field = 'name'
+    lookup_field = 'board'
 
 
 class CategoryViewSet(ReadOnlyModelViewSet, GenericViewSet):
