@@ -51,10 +51,11 @@ class Board(models.Model):
     @property
     def last_num(self):
         try:
-            pid = Post.objects.filter(thread__board=self.id).latest().num
+            pid = Post.objects.only("thread", "num").filter(thread__board=self.id).latest().num
         except Post.DoesNotExist:
             pid = 0
-        return pid
+        finally:
+            return pid
 
 
 class Thread(models.Model):
