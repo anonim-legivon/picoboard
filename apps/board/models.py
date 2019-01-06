@@ -79,15 +79,15 @@ class Thread(models.Model):
         for post in self.posts.all():  # Для Prefetch
             if post.is_op_post:
                 return post
-            else:
-                return None
+
+            return None
 
     @cached_property
     def thread_id(self):
         if self.op_post:
             return self.op_post.num
-        else:
-            return -1
+
+        return -1
 
     @property
     def last_posts(self):
@@ -95,10 +95,12 @@ class Thread(models.Model):
         t_length = thread_posts.count()
         if t_length == 1:
             return None
-        elif t_length < 5:
-            return thread_posts[1:t_length]
-        elif t_length >= 5:
-            return thread_posts[t_length - 3:t_length]
+
+        return (
+            thread_posts[1:t_length]
+            if t_length < 5 else
+            thread_posts[t_length - 3:t_length]
+        )
 
     @property
     def posts_count(self):

@@ -10,8 +10,11 @@ from .exceptions import BoardNotFound
 from .models import Board, Category, Thread
 from .pagination import ThreadLimitOffsetPagination
 from .serializers import (
-    BoardSerializer, CategorySerializer, PostSerializer,
-    ThreadPreviewSerializer, ThreadSerializer
+    BoardSerializer,
+    CategorySerializer,
+    PostSerializer,
+    ThreadPreviewSerializer,
+    ThreadSerializer,
 )
 
 
@@ -21,10 +24,11 @@ class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
     lookup_field = 'posts__num'
 
     def get_serializer_class(self):
-        if self.action == 'list':
-            return ThreadPreviewSerializer
-        else:
-            return ThreadSerializer
+        return (
+            ThreadPreviewSerializer
+            if self.action == 'list' else
+            ThreadSerializer
+        )
 
     def get_queryset(self):
         qs = Thread.objects.filter(

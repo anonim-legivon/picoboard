@@ -4,7 +4,7 @@ services:
   postgres:
     image: postgres:10-alpine
     ports:
-      - "5432:5432"
+      - "15432:5432"
     volumes:
       - ./etc/postgresql-data:/var/lib/postgresql/data
     env_file:
@@ -13,12 +13,12 @@ services:
   redis:
     image: redis:5-alpine
     ports:
-      - "6379:6379"
+      - "16379:6379"
 
   minio:
     image: minio/minio
     volumes:
-       - ./etc/minio-data:/data
+      - ./etc/minio-data:/data
     ports:
       - "9000:9000"
     environment:

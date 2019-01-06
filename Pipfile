@@ -1,0 +1,32 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+pylint = "*"
+pylint-django = "*"
+pytest = "*"
+pytest-cov = "*"
+pytest-django = "*"
+nplusone = "*"
+flake8 = "*"
+isort = "*"
+
+[packages]
+django = "==2.1.5"
+amqp = "==2.3.2"
+celery = "==4.2.1"
+django-cors-headers = "==2.4.0"
+django-environ = "==0.4.5"
+django-extensions = "==2.1.4"
+django-filter = "==2.0.0"
+django-model-utils = "==3.1.2"
+django-redis = "==4.10.0"
+djangorestframework = "==3.9.0"
+drf-nested-routers = "==0.91"
+pillow = "==5.4.0"
+psycopg2 = "==2.7.6.1"
+
+[requires]
+python_version = "3.7"
