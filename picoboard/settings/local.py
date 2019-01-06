@@ -25,6 +25,9 @@ LOGGING['loggers']['nplusone'] = {
     'level': 'WARN',
 }
 
+# Отключаем игнорирование ошибок кеширования редисом для дебага
+CACHES['default']['OPTIONS']['IGNORE_EXCEPTIONS'] = False
+
 # Celery
 # ------------------------------------------------------------------------------
 # http://docs.celeryproject.org/en/latest/userguide/configuration.html#task-always-eager
