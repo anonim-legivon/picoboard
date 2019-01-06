@@ -4,7 +4,7 @@ from ..models import Board
 
 
 class BoardSerializer(serializers.ModelSerializer):
-    last_pid = serializers.ReadOnlyField()
+    last_num = serializers.ReadOnlyField()
 
     class Meta:
         model = Board
