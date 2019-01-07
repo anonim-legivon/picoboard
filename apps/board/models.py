@@ -51,10 +51,11 @@ class Board(models.Model):
     @property
     def last_num(self):
         try:
-            pid = Post.objects.filter(thread__board=self.id).latest().num
+            pid = Post.objects.only("thread", "num").filter(thread__board=self.id).latest().num
         except Post.DoesNotExist:
             pid = 0
-        return pid
+        finally:
+            return pid
 
 
 class Thread(models.Model):
@@ -76,11 +77,12 @@ class Thread(models.Model):
 
     @cached_property
     def op_post(self):
-        for post in self.posts.all():  # Для Prefetch
-            if post.is_op_post:
-                return post
+        """
+        Метод из списка всех постов в тереде 
+        берёт иденственный пост с пометкой `is_op_post` и возвращает его
+        """
+        return self.posts.objects.get(is_op_post=True)
 
-            return None
 
     @cached_property
     def thread_id(self):
