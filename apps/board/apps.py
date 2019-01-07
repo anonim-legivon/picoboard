@@ -4,4 +4,4 @@ from django.utils.translation import gettext_lazy as _
 
 class BoardConfig(AppConfig):
     name = 'apps.board'
-    verbose_name = _('борда')
+    verbose_name = _('Picoboard')

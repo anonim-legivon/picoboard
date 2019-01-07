@@ -1,7 +1,10 @@
+import re
+
 from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
+from django_regex.fields import RegexField
 
 
 class Category(models.Model):
@@ -34,7 +37,7 @@ class Board(models.Model):
         _('максимум тредов'), default=200
     )
     filesize_limit = models.PositiveIntegerField(
-        _('лимит на размер файла'), default=2 ** 20 * 5
+        _('лимит на размер файлов'), default=(2 ** 20) * 20
     )
     trip_permit = models.BooleanField(_('разрешены трип коды'), default=False)
     default_name = models.CharField(
@@ -51,11 +54,18 @@ class Board(models.Model):
     @property
     def last_num(self):
         try:
-            pid = Post.objects.only("thread", "num").filter(thread__board=self.id).latest().num
+            pid = Post.objects.only("thread", "num").filter(
+                thread__board=self.id).latest().num
         except Post.DoesNotExist:
             pid = 0
-        finally:
-            return pid
+
+        return pid
+
+    @property
+    def get_filesize(self):
+        return f'{self.filesize_limit / 2 ** 20} Mb'
+
+    get_filesize.fget.short_description = _('максимальный размер файлов')
 
 
 class Thread(models.Model):
@@ -81,20 +91,17 @@ class Thread(models.Model):
         Метод из списка всех постов в тереде 
         берёт иденственный пост с пометкой `is_op_post` и возвращает его
         """
-        return self.posts.objects.get(is_op_post=True)
-
+        return self.posts.get(is_op_post=True)
 
     @cached_property
     def thread_id(self):
-        if self.op_post:
-            return self.op_post.num
-
-        return -1
+        return self.op_post.num if self.op_post else -1
 
     @property
     def last_posts(self):
         thread_posts = self.posts.all()
         t_length = thread_posts.count()
+
         if t_length == 1:
             return None
 
@@ -153,14 +160,43 @@ class Post(models.Model):
     def __str__(self):
         return f'{self.num}'
 
-    def save(self, **kwargs):
+    def save(self, *args, **kwargs):
         self.num = self.thread.board.last_num + 1
         # TODO: Проверить на race condition при сохранении
         self.thread.lasthit = timezone.now()
         self.thread.save()
-        super(Post, self).save(**kwargs)
+        super().save(*args, **kwargs)
 
-    def delete(self, **kwargs):
-        super(Post, self).delete(**kwargs)
+    def delete(self, *args, **kwargs):
+        super().delete(*args, **kwargs)
         if self.is_op_post:
             self.thread.delete()
+
+
+class SpamWord(models.Model):
+    expression = RegexField(
+        flags=re.IGNORECASE, verbose_name=_('регулярное выражение')
+    )
+    boards = models.ManyToManyField(
+        'Board', related_name='spam_words', blank=True,
+        verbose_name=_('доски')
+    )
+    for_all_boards = models.BooleanField(_('для всех досок'), default=False)
+    created = models.DateTimeField(_('создано'), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('спам слово')
+        verbose_name_plural = _('спам слова')
+
+    def __str__(self):
+        return f'{self.expression.pattern}'
+
+    # TODO: Условия сохранения полей
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+
+    @property
+    def pattern(self):
+        return self.expression.pattern
+
+    pattern.fget.short_description = _('паттерн')

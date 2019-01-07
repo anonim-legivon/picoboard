@@ -1,7 +1,6 @@
 from rest_framework import serializers
 
-from ..exceptions import ThreadNotFound
-from ..models import Post, Thread
+from ..models import Post
 
 
 class PostSerializer(serializers.ModelSerializer):
@@ -21,24 +20,13 @@ class PostSerializer(serializers.ModelSerializer):
 
     # TODO: #2 Создание тредов и постов
     def create(self, validated_data):
-        board = self.context.get('board')
         thread = self.context.get('thread')
-
-        if thread:
-            try:
-                thread = Thread.objects.get(board=board, posts__num=thread)
-            except Thread.DoesNotExist:
-                raise ThreadNotFound
-            else:
-                is_op_post = False
-                parent = thread.thread_id
-        else:
-            thread = Thread.objects.create(board=board)
-            is_op_post = True
-            parent = 0
+        is_op_post = self.context.get('is_op_post')
+        parent = self.context.get('parent')
 
         post = Post.objects.create(
             thread=thread, is_op_post=is_op_post, parent=parent,
             **validated_data
         )
+
         return post

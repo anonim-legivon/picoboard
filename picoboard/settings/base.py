@@ -44,6 +44,7 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     'rest_framework',
     'corsheaders',
+    'django_regex',
 ]
 LOCAL_APPS = [
     'core',
@@ -184,7 +185,8 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'thread.create': '2/min',
         'thread.post': '12/min',
-    }
+    },
+    'EXCEPTION_HANDLER': 'core.exceptions.api_exception_handler',
 }
 
 LOGGING = {

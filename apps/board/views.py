@@ -4,9 +4,8 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
 
-from core.helpers import gen_tripcode, get_remote_ip
 from core.mixins import CreateListRetrieveMixin
-from .exceptions import BoardNotFound
+from .helpers import post_processing
 from .models import Board, Category, Thread
 from .pagination import ThreadLimitOffsetPagination
 from .serializers import (
@@ -73,39 +72,17 @@ class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED,
                         headers=headers)
 
+    # TODO: Так как функции совпадают пока заменил на вызов create
     @action(detail=True, methods=['post'])
     def post(self, request, *args, **kwargs):
-        serializer = PostSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED,
-                        headers=headers)
+        return self.create(request, *args, **kwargs)
 
     def perform_create(self, serializer, **kwargs):
-        board_name = self.kwargs.get('board_board')
-        thread_id = self.kwargs.get('posts__num')
+        serializer, post_kwargs = post_processing(
+            self.request, serializer, **self.kwargs
+        )
 
-        name = serializer.validated_data.get('name')
-
-        try:
-            board = Board.objects.get(board=board_name)
-        except Board.DoesNotExist:
-            raise BoardNotFound
-        else:
-            serializer.context['board'] = board
-            serializer.context['thread'] = thread_id
-
-        if name:
-            tripcode = gen_tripcode(name, board.trip_permit)
-
-            kwargs['name'] = tripcode['name'] or board.default_name
-            kwargs['tripcode'] = tripcode['trip']
-
-        kwargs['ip'] = get_remote_ip(self.request)
-
-        serializer.save(**kwargs)
+        serializer.save(**post_kwargs)
 
 
 class BoardViewSet(ReadOnlyModelViewSet, GenericViewSet):
