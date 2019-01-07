@@ -29,6 +29,9 @@ class UserBannedError(PermissionDenied):
     default_detail = _('Ваш IP адрес заблокирован')
     default_code = 'user_banned_error'
 
+    reason = None
+    until = None
+
     def __init__(self, detail=None, code=None, **kwargs):
         reason = kwargs.get('reason')
         until = kwargs.get('until')

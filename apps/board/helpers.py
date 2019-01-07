@@ -68,18 +68,19 @@ def post_processing(request, serializer, **kwargs):
 
 def check_ban(ip, board):
     now = timezone.now()
-    expression = ExpressionWrapper(
+    until = ExpressionWrapper(
         F('created') + F('duration'), output_field=DateTimeField()
     )
 
     try:
-        ban = Ban.objects.annotate(until=expression).filter(
+        ban = Ban.objects.annotate(until=until).filter(
             Q(board=board) & Q(ip=ip) & Q(until__gte=now)
         ).latest('until')
     except Ban.DoesNotExist:
         return
     else:
-        raise UserBannedError(reason=ban.reason, until=ban.until)
+        until = timezone.make_naive(ban.until)
+        raise UserBannedError(reason=ban.reason, until=until)
 
 
 def check_spam(comment, subject, board):
