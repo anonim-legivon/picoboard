@@ -4,7 +4,7 @@ from rest_framework_nested import routers
 
 from .views import BoardViewSet, CategoryViewSet, ThreadViewSet
 
-router = routers.SimpleRouter()
+router = routers.SimpleRouter(trailing_slash=False)
 router.register(r'boards', BoardViewSet)
 router.register(r'categories', CategoryViewSet)
 

@@ -1,6 +1,6 @@
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status
-from rest_framework.exceptions import APIException, NotFound
+from rest_framework.exceptions import APIException, NotFound, PermissionDenied
 
 
 class BoardNotFound(NotFound):
@@ -23,3 +23,20 @@ class ThreadClosedError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = _('Тред закрыт')
     default_code = 'thread_closed_error'
+
+
+class UserBannedError(PermissionDenied):
+    default_detail = _('Ваш IP адрес заблокирован')
+    default_code = 'user_banned_error'
+
+    def __init__(self, detail=None, code=None, **kwargs):
+        reason = kwargs.get('reason')
+        until = kwargs.get('until')
+
+        if reason:
+            self.reason = reason
+
+        if until:
+            self.until = until
+
+        super().__init__(detail, code)

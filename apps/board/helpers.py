@@ -1,12 +1,14 @@
 import re
 
-from django.db.models import Q
+from django.db.models import DateTimeField, ExpressionWrapper, F, Q
+from django.utils import timezone
 
 from core.helpers import gen_tripcode, get_remote_ip
 from .exceptions import (
-    BoardNotFound, ThreadClosedError, ThreadNotFound, WordInSpamListError
+    BoardNotFound, ThreadClosedError, ThreadNotFound, UserBannedError,
+    WordInSpamListError
 )
-from .models import Board, SpamWord, Thread
+from .models import Ban, Board, SpamWord, Thread
 
 
 def post_processing(request, serializer, **kwargs):
@@ -23,6 +25,10 @@ def post_processing(request, serializer, **kwargs):
         board = Board.objects.get(board=board_name)
     except Board.DoesNotExist:
         raise BoardNotFound
+
+    ip = get_remote_ip(request)
+
+    check_ban(ip, board)
 
     if check_spam(comment, subject, board):
         raise WordInSpamListError
@@ -55,9 +61,25 @@ def post_processing(request, serializer, **kwargs):
         post_kwargs['name'] = tripcode['name'] or board.default_name
         post_kwargs['tripcode'] = tripcode['trip']
 
-    post_kwargs['ip'] = get_remote_ip(request)
+    post_kwargs['ip'] = ip
 
     return serializer, post_kwargs
+
+
+def check_ban(ip, board):
+    now = timezone.now()
+    expression = ExpressionWrapper(
+        F('created') + F('duration'), output_field=DateTimeField()
+    )
+
+    try:
+        ban = Ban.objects.annotate(until=expression).filter(
+            Q(board=board) & Q(ip=ip) & Q(until__gte=now)
+        ).latest('until')
+    except Ban.DoesNotExist:
+        return
+    else:
+        raise UserBannedError(reason=ban.reason, until=ban.until)
 
 
 def check_spam(comment, subject, board):

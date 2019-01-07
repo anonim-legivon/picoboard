@@ -3,6 +3,8 @@ from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
+from rest_framework_extensions.cache.decorators import cache_response
+from rest_framework_extensions.cache.mixins import CacheResponseMixin
 
 from core.mixins import CreateListRetrieveMixin
 from .helpers import post_processing
@@ -61,6 +63,14 @@ class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
 
         return obj
 
+    @cache_response(1)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @cache_response(1)
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
     # TODO: create и post совпадают, возможно стоит вынести в отдельную функцию,
     #       но в дальнейшем может измениться
     def create(self, request, *args, **kwargs):
@@ -85,12 +95,12 @@ class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
         serializer.save(**post_kwargs)
 
 
-class BoardViewSet(ReadOnlyModelViewSet, GenericViewSet):
+class BoardViewSet(CacheResponseMixin, ReadOnlyModelViewSet, GenericViewSet):
     queryset = Board.objects.all()
     serializer_class = BoardSerializer
     lookup_field = 'board'
 
 
-class CategoryViewSet(ReadOnlyModelViewSet, GenericViewSet):
-    queryset = Category.objects.prefetch_related('boards').order_by('-order')
+class CategoryViewSet(CacheResponseMixin, ReadOnlyModelViewSet, GenericViewSet):
+    queryset = Category.objects.select_related('boards').order_by('-order')
     serializer_class = CategorySerializer

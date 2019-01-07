@@ -55,7 +55,6 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.cache.UpdateCacheMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -63,7 +62,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django.middleware.cache.FetchFromCacheMiddleware',
 ]
 
 ROOT_URLCONF = 'picoboard.urls'
@@ -135,6 +133,8 @@ USE_TZ = True
 
 ADMIN_SITE_HEADER = 'PICOBOARD'
 
+APPEND_SLASH = False
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
@@ -154,15 +154,13 @@ CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
         'LOCATION': CACHE_REDIS_HOSTS,
-        'TIMEOUT': 1,
+        'TIMEOUT': 60,
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
             'IGNORE_EXCEPTIONS': True,
         }
     }
 }
-
-CACHE_MIDDLEWARE_SECONDS = 1
 
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
@@ -187,12 +185,12 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_CLASSES': (
         'rest_framework.throttling.ScopedRateThrottle',
     ),
-    # FIXME: Троттлинг не работает
     'DEFAULT_THROTTLE_RATES': {
         'thread.create': '2/min',
         'thread.post': '12/min',
     },
     'EXCEPTION_HANDLER': 'core.exceptions.api_exception_handler',
+    'DEFAULT_CACHE_RESPONSE_TIMEOUT': 60,
 }
 
 LOGGING = {

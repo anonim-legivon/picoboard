@@ -98,10 +98,7 @@ class Thread(models.Model):
 
     @cached_property
     def thread_num(self):
-        if self.op_post:
-            return self.op_post.num
-        else:
-            return -1
+        return self.op_post.num if self.op_post else -1
 
     @property
     def last_posts(self):
@@ -209,3 +206,21 @@ class SpamWord(models.Model):
         return self.expression.pattern
 
     pattern.fget.short_description = _('паттерн')
+
+
+class Ban(models.Model):
+    ip = models.GenericIPAddressField(_('IP'), db_index=True)
+    board = models.ForeignKey(
+        'Board', on_delete=models.CASCADE, related_name='bans',
+        verbose_name=_('доска')
+    )
+    reason = models.TextField(_('причина'), blank=True, default='')
+    duration = models.DurationField(_('длительность'))
+    created = models.DateTimeField(_('создан'), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _('бан')
+        verbose_name_plural = _('баны')
+
+    def __str__(self):
+        return f'Бан: {self.ip} [{self.duration}]'

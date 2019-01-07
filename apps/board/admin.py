@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Board, Category, Post, SpamWord, Thread
+from .models import Ban, Board, Category, Post, SpamWord, Thread
 
 
 class PostsInline(admin.TabularInline):
@@ -41,7 +41,7 @@ class SpamWordAdmin(admin.ModelAdmin):
 
 class BoardAdmin(admin.ModelAdmin):
     list_display = (
-        'board', 'board_name', 'bump_limit',
+        'board', 'board_name', 'category', 'bump_limit',
         'thread_limit', 'get_filesize',
     )
 
@@ -52,8 +52,16 @@ class CategoryAdmin(admin.ModelAdmin):
     )
 
 
+class BanAdmin(admin.ModelAdmin):
+    list_display = ('ip', 'board', 'duration', 'created',)
+    list_filter = ('board', 'created',)
+    search_fields = ('ip',)
+    readonly_fields = ('created',)
+
+
 admin.site.register(Post, PostAdmin)
 admin.site.register(Thread, ThreadAdmin)
 admin.site.register(Board, BoardAdmin)
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(SpamWord, SpamWordAdmin)
+admin.site.register(Ban, BanAdmin)
