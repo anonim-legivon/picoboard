@@ -109,10 +109,10 @@ def process_text(text):
     new_text = re.sub(r'%%(.+?)%%', r'<i class="spoiler">\1</i>', new_text)
 
     # TODO: Ответы на посты
-    # new_text = re.sub(
-    #     r'>>([0-9]+)', r'<a class="post_link" data-link="\1">>>\1</a>',
-    #     new_text
-    # )
+    new_text = re.sub(
+        r'>>([0-9]+)', r'<a class="post_link" data-link="\1">>>\1</a>',
+        new_text
+    )
 
     new_text = re.sub(
         r'(^|\n)(>.+?)(\n|$)', r'\1<span class="quote">\2</span>\3', new_text,

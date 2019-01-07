@@ -154,12 +154,18 @@ CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
         'LOCATION': CACHE_REDIS_HOSTS,
+        'TIMEOUT': 1,
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
             'IGNORE_EXCEPTIONS': True,
         }
     }
 }
+
+CACHE_MIDDLEWARE_SECONDS = 1
+
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
 
 CELERY_BROKER_URL = env.str('CELERY_BROKER_URL', 'redis://redis:6379/2')
 CELERY_RESULT_BACKEND = CELERY_BROKER_URL
