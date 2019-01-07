@@ -12,7 +12,7 @@ class PostsInline(admin.TabularInline):
 
 class ThreadAdmin(admin.ModelAdmin):
     inlines = (PostsInline,)
-    list_display = ('board', 'thread_id',)
+    list_display = ('board', 'thread_num',)
 
     def save_related(self, request, form, formsets, change):
         op_post = formsets[0][0].instance

@@ -55,7 +55,8 @@ class Board(models.Model):
     def last_num(self):
         try:
             pid = Post.objects.only("thread", "num").filter(
-                thread__board=self.id).latest().num
+                thread__board=self.id
+            ).latest('num').num
         except Post.DoesNotExist:
             pid = 0
 
@@ -89,13 +90,18 @@ class Thread(models.Model):
     def op_post(self):
         """
         Метод из списка всех постов в тереде 
-        берёт иденственный пост с пометкой `is_op_post` и возвращает его
+        ищет иденственный пост с пометкой `is_op_post` и возвращает его
         """
-        return self.posts.get(is_op_post=True)
+        for post in self.posts.all():
+            if post.is_op_post:
+                return post
 
     @cached_property
-    def thread_id(self):
-        return self.op_post.num if self.op_post else -1
+    def thread_num(self):
+        if self.op_post:
+            return self.op_post.num
+        else:
+            return -1
 
     @property
     def last_posts(self):
@@ -150,6 +156,7 @@ class Post(models.Model):
         default=''
     )
     comment = models.TextField(_('сообщение'), blank=True, default='')
+    sage = models.BooleanField(_('sage'), default=False, blank=True)
 
     class Meta:
         verbose_name = _('пост')
@@ -162,9 +169,11 @@ class Post(models.Model):
 
     def save(self, *args, **kwargs):
         self.num = self.thread.board.last_num + 1
-        # TODO: Проверить на race condition при сохранении
-        self.thread.lasthit = timezone.now()
-        self.thread.save()
+
+        if self.is_op_post or not self.sage:
+            self.thread.lasthit = timezone.now()
+            self.thread.save()
+
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):

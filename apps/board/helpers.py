@@ -37,7 +37,7 @@ def post_processing(request, serializer, **kwargs):
             raise ThreadClosedError
 
         is_op_post = False
-        parent = thread.thread_id
+        parent = thread.thread_num
 
     else:
         thread = Thread.objects.create(board=board)
@@ -47,6 +47,7 @@ def post_processing(request, serializer, **kwargs):
     serializer.context['thread'] = thread
     serializer.context['is_op_post'] = is_op_post
     serializer.context['parent'] = parent
+    serializer.context['comment'] = process_text(comment)
 
     if name:
         tripcode = gen_tripcode(name, board.trip_permit)
@@ -62,6 +63,7 @@ def post_processing(request, serializer, **kwargs):
 def check_spam(comment, subject, board):
     """
     Проверяем сообщение на содержания в нем слов из спам листа
+    :param subject: Тема поста
     :param comment: Сообщение
     :param board: Доска
     :return: Содержится ли слово в спам листе
@@ -87,3 +89,34 @@ def check_spam(comment, subject, board):
             return True
 
     return re.fullmatch(expressions, comment, flags=flags)
+
+
+def process_text(text):
+    new_text = re.sub(r'<', '&lt;', text)
+    new_text = re.sub(
+        r'(http:.+?)( |\n|$)', r'<a href="\1" target="_blank">\1</a>\2',
+        new_text, flags=re.M
+    )
+    new_text = re.sub(
+        r'(https:.+?)( |\n|$)', r'<a href="\1" target="_blank">\1</a>\2',
+        new_text, flags=re.M
+    )
+    new_text = re.sub(r'\*\*(.+?)\*\*', r'<b class="bold">\1</b>', new_text)
+    new_text = re.sub(
+        r'\*(.+?)\*', r'<strong class="italic">\1</strong>', new_text
+    )
+    new_text = re.sub(r'__(.+?)__', r'<em class="crossed">\1</em>', new_text)
+    new_text = re.sub(r'%%(.+?)%%', r'<i class="spoiler">\1</i>', new_text)
+
+    # TODO: Ответы на посты
+    # new_text = re.sub(
+    #     r'>>([0-9]+)', r'<a class="post_link" data-link="\1">>>\1</a>',
+    #     new_text
+    # )
+
+    new_text = re.sub(
+        r'(^|\n)(>.+?)(\n|$)', r'\1<span class="quote">\2</span>\3', new_text,
+        flags=re.M
+    )
+
+    return new_text
