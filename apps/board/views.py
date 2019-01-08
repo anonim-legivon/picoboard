@@ -102,5 +102,5 @@ class BoardViewSet(CacheResponseMixin, ReadOnlyModelViewSet, GenericViewSet):
 
 
 class CategoryViewSet(CacheResponseMixin, ReadOnlyModelViewSet, GenericViewSet):
-    queryset = Category.objects.select_related('boards').order_by('-order')
+    queryset = Category.objects.prefetch_related('boards').order_by('-order')
     serializer_class = CategorySerializer
