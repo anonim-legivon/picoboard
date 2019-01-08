@@ -29,6 +29,7 @@ pillow = "==5.4.0"
 psycopg2 = "==2.7.6.1"
 django-regex = "==0.2.1"
 drf-extensions = "*"
+django-netfields = "*"
 
 [requires]
 python_version = "3.7"

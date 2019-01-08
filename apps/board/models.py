@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django_regex.fields import RegexField
+from netfields import CidrAddressField, NetManager
 
 
 class Category(models.Model):
@@ -118,6 +119,12 @@ class Thread(models.Model):
     def posts_count(self):
         return self.posts.count()
 
+    @property
+    def bump_limit(self):
+        return self.posts_count > self.board.bump_limit
+
+    bump_limit.fget.short_description = _('бамп лимит')
+
 
 class Post(models.Model):
     num = models.PositiveIntegerField(
@@ -166,8 +173,7 @@ class Post(models.Model):
 
     def save(self, *args, **kwargs):
         self.num = self.thread.board.last_num + 1
-
-        if self.is_op_post or not self.sage:
+        if self.is_op_post or not (self.sage or self.thread.bump_limit):
             self.thread.lasthit = timezone.now()
             self.thread.save()
 
@@ -209,11 +215,14 @@ class SpamWord(models.Model):
 
 
 class Ban(models.Model):
-    ip = models.GenericIPAddressField(_('IP'), db_index=True)
+    objects = NetManager()
+
+    inet = CidrAddressField(verbose_name=_('CIDR'), db_index=True)
     board = models.ForeignKey(
-        'Board', on_delete=models.CASCADE, related_name='bans',
-        verbose_name=_('доска')
+        'Board', on_delete=models.CASCADE, null=True,
+        related_name='bans', blank=True, verbose_name=_('доска')
     )
+    for_all_boards = models.BooleanField(_('для всех досок'), default=False)
     reason = models.TextField(_('причина'), blank=True, default='')
     duration = models.DurationField(_('длительность'))
     created = models.DateTimeField(_('создан'), auto_now_add=True)
@@ -223,4 +232,12 @@ class Ban(models.Model):
         verbose_name_plural = _('баны')
 
     def __str__(self):
-        return f'Бан: {self.ip} [{self.duration}]'
+        return f'Бан: {self.inet} [{self.duration}]'
+
+    def save(self, *args, **kwargs):
+        if self.for_all_boards:
+            self.board = None
+        if not self.board:
+            self.for_all_boards = True
+
+        super().save(*args, **kwargs)

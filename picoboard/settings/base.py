@@ -45,6 +45,7 @@ THIRD_PARTY_APPS = [
     'rest_framework',
     'corsheaders',
     'django_regex',
+    'netfields',
 ]
 LOCAL_APPS = [
     'core',
@@ -154,7 +155,6 @@ CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
         'LOCATION': CACHE_REDIS_HOSTS,
-        'TIMEOUT': 60,
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
             'IGNORE_EXCEPTIONS': True,

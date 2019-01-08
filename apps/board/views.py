@@ -38,7 +38,7 @@ class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
 
         if self.action == 'list':
             qs = qs.select_related('board')
-            qs = qs.order_by('-lasthit')
+            qs = qs.order_by('-is_pinned', '-lasthit')
 
         qs = qs.prefetch_related('posts')
         return qs

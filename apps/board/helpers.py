@@ -68,14 +68,18 @@ def post_processing(request, serializer, **kwargs):
 
 def check_ban(ip, board):
     now = timezone.now()
+
     until = ExpressionWrapper(
         F('created') + F('duration'), output_field=DateTimeField()
     )
+    q = (
+        Q(board=board) | Q(for_all_boards=True),
+        Q(inet__net_contains_or_equals=ip),
+        Q(until__gte=now),
+    )
 
     try:
-        ban = Ban.objects.annotate(until=until).filter(
-            Q(board=board) & Q(ip=ip) & Q(until__gte=now)
-        ).latest('until')
+        ban = Ban.objects.annotate(until=until).filter(*q).latest('until')
     except Ban.DoesNotExist:
         return
     else:
