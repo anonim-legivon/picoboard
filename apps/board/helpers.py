@@ -17,6 +17,7 @@ def post_processing(request, serializer, **kwargs):
 
     subject = serializer.validated_data.get('subject')[:40]
     comment = serializer.validated_data.get('comment')
+    sage = serializer.validated_data.get('sage')
 
     try:
         board = Board.objects.get(board=board_name)
@@ -31,6 +32,7 @@ def post_processing(request, serializer, **kwargs):
         raise WordInSpamListError
 
     subject = subject if board.enable_subject else ''
+    sage = sage if board.enable_sage else False
 
     if thread_id:
         try:
@@ -68,7 +70,8 @@ def post_processing(request, serializer, **kwargs):
         'name': name,
         'tripcode': tripcode,
         'ip': ip,
-        'subject': subject if board.enable_subject else ''
+        'subject': subject,
+        'sage': sage
     }
 
     return serializer, post_kwargs
