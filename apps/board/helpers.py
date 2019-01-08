@@ -25,14 +25,13 @@ def post_processing(request, serializer, **kwargs):
         raise BoardNotFound
 
     ip = helpers.get_remote_ip(request)
-
     check_ban(ip, board)
-
-    if check_spam(text=[comment, subject], board=board):
-        raise WordInSpamListError
 
     subject = subject if board.enable_subject else ''
     sage = sage if board.enable_sage else False
+
+    if check_spam(text=[comment, subject], board=board):
+        raise WordInSpamListError
 
     if thread_id:
         try:
@@ -120,7 +119,9 @@ def check_spam(text, board):
     )
 
     if isinstance(text, list):
-        return any([re.fullmatch(expressions, t, flags=flags) for t in text])
+        return any(
+            [re.fullmatch(expressions, t, flags=flags) for t in text if t]
+        )
 
     return re.fullmatch(expressions, text, flags=flags)
 
