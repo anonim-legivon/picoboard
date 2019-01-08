@@ -46,6 +46,7 @@ THIRD_PARTY_APPS = [
     'corsheaders',
     'django_regex',
     'netfields',
+    'recaptcha',
 ]
 LOCAL_APPS = [
     'core',
@@ -243,3 +244,5 @@ LOGGING = {
         },
     }
 }
+
+GR_CAPTCHA_SECRET_KEY = env.str('RECAPTCHA_SECRET_KEY', None)

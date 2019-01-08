@@ -1,9 +1,11 @@
+from recaptcha.fields import ReCaptchaField
 from rest_framework import serializers
 
 from ..models import Post
 
 
 class PostSerializer(serializers.ModelSerializer):
+    recaptcha = ReCaptchaField(write_only=True)
     comment = serializers.CharField(required=True, max_length=15000)
 
     class Meta:
@@ -23,6 +25,7 @@ class PostSerializer(serializers.ModelSerializer):
         thread = self.context.get('thread')
         is_op_post = self.context.get('is_op_post')
         parent = self.context.get('parent')
+        validated_data.pop('recaptcha', None)
         validated_data['comment'] = self.context.get('comment')
 
         post = Post.objects.create(
