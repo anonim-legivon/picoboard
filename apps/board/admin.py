@@ -17,6 +17,7 @@ class ThreadAdmin(admin.ModelAdmin):
         'is_closed', 'bump_limit', 'is_deleted',
         'lasthit'
     )
+    ordering = ('-lasthit',)
 
     def save_related(self, request, form, formsets, change):
         op_post = formsets[0][0].instance
@@ -40,6 +41,7 @@ class PostAdmin(admin.ModelAdmin):
     list_filter = ('is_op_post', 'date',)
     list_select_related = ('thread',)
     readonly_fields = ('parent', 'is_op_post',)
+    ordering = ('-date',)
 
 
 class SpamWordAdmin(admin.ModelAdmin):
@@ -47,6 +49,7 @@ class SpamWordAdmin(admin.ModelAdmin):
     list_filter = ('boards', 'created', 'for_all_boards')
     search_fields = ('expression',)
     readonly_fields = ('created',)
+    ordering = ('-created',)
 
 
 class BoardAdmin(admin.ModelAdmin):
@@ -69,8 +72,8 @@ class BanAdmin(admin.ModelAdmin):
     )
     list_filter = ('board', 'for_all_boards', 'created',)
     search_fields = ('inet',)
-
     readonly_fields = ('created',)
+    ordering = ('-created',)
 
     list_select_related = ('board',)
 
