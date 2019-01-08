@@ -40,7 +40,15 @@ class Board(models.Model):
     filesize_limit = models.PositiveIntegerField(
         _('лимит на размер файлов'), default=(2 ** 20) * 20
     )
-    trip_permit = models.BooleanField(_('разрешены трип коды'), default=False)
+    enable_trips = models.BooleanField(_('разрешены трип коды'), default=False)
+    trip_required = models.BooleanField(
+        _('генерировать трип код'), default=False
+    )
+    enable_sage = models.BooleanField(_('sage включена'), default=True)
+    enable_subject = models.BooleanField(
+        _('разрешены темы постов'), default=True
+    )
+    enable_names = models.BooleanField(_('разрешены имена'), default=False)
     default_name = models.CharField(
         _('имя в постах'), max_length=48, default=_('Аноним')
     )
@@ -51,6 +59,12 @@ class Board(models.Model):
 
     def __str__(self):
         return f'{self.board}'
+
+    def save(self, *args, **kwargs):
+        if not self.enable_names and self.enable_trips:
+            self.enable_names = True
+
+        super().save(*args, **kwargs)
 
     @property
     def last_num(self):
@@ -139,7 +153,7 @@ class Post(models.Model):
         _('родитель'), blank=True, db_index=True
     )
     is_op_post = models.BooleanField(_('первый пост в треде'), default=False)
-    date = models.DateTimeField(_('время'), auto_now_add=True)
+    timestamp = models.DateTimeField(_('время'), auto_now_add=True)
     is_deleted = models.BooleanField(_('удален'), default=False)
     ip = models.GenericIPAddressField('IP', blank=True, null=True)
     name = models.CharField(
@@ -173,6 +187,7 @@ class Post(models.Model):
 
     def save(self, *args, **kwargs):
         self.num = self.thread.board.last_num + 1
+
         if self.is_op_post or not (self.sage or self.thread.bump_limit):
             self.thread.lasthit = timezone.now()
             self.thread.save()

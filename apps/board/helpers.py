@@ -3,7 +3,7 @@ import re
 from django.db.models import DateTimeField, ExpressionWrapper, F, Q
 from django.utils import timezone
 
-from core.helpers import gen_tripcode, get_remote_ip
+from core import helpers
 from .exceptions import (
     BoardNotFound, ThreadClosedError, ThreadNotFound, UserBannedError,
     WordInSpamListError
@@ -15,23 +15,22 @@ def post_processing(request, serializer, **kwargs):
     board_name = kwargs.get('board_board')
     thread_id = kwargs.get('posts__num')
 
-    name = serializer.validated_data.get('name')
-    subject = serializer.validated_data.get('subject')
+    subject = serializer.validated_data.get('subject')[:40]
     comment = serializer.validated_data.get('comment')
-
-    post_kwargs = dict()
 
     try:
         board = Board.objects.get(board=board_name)
     except Board.DoesNotExist:
         raise BoardNotFound
 
-    ip = get_remote_ip(request)
+    ip = helpers.get_remote_ip(request)
 
     check_ban(ip, board)
 
-    if check_spam(comment, subject, board):
+    if check_spam(text=[comment, subject], board=board):
         raise WordInSpamListError
+
+    subject = subject if board.enable_subject else ''
 
     if thread_id:
         try:
@@ -55,13 +54,22 @@ def post_processing(request, serializer, **kwargs):
     serializer.context['parent'] = parent
     serializer.context['comment'] = process_text(comment)
 
-    if name:
-        tripcode = gen_tripcode(name, board.trip_permit)
+    name = serializer.validated_data.get('name') or board.default_name
 
-        post_kwargs['name'] = tripcode['name'] or board.default_name
-        post_kwargs['tripcode'] = tripcode['trip']
+    name_trip = helpers.gen_tripcode(name, board.enable_trips)
+    require_trip = helpers.require_trip(ip) if board.trip_required else ''
 
-    post_kwargs['ip'] = ip
+    name = (
+        name_trip['name'] if board.enable_names else board.default_name
+    )
+    tripcode = require_trip or name_trip['trip']
+
+    post_kwargs = {
+        'name': name,
+        'tripcode': tripcode,
+        'ip': ip,
+        'subject': subject if board.enable_subject else ''
+    }
 
     return serializer, post_kwargs
 
@@ -87,11 +95,10 @@ def check_ban(ip, board):
         raise UserBannedError(reason=ban.reason, until=until)
 
 
-def check_spam(comment, subject, board):
+def check_spam(text, board):
     """
     Проверяем сообщение на содержания в нем слов из спам листа
-    :param subject: Тема поста
-    :param comment: Сообщение
+    :param text: Текст для проверки
     :param board: Доска
     :return: Содержится ли слово в спам листе
     :rtype: bool
@@ -102,20 +109,17 @@ def check_spam(comment, subject, board):
     ).values_list('expression', flat=True)
 
     if not spam_filters.exists():
-        return True
+        return False
 
     flags = re.IGNORECASE
     expressions = '|'.join(
         '(?:{0})'.format(x) for x in spam_filters
     )
 
-    if subject:
-        check_subject = re.fullmatch(expressions, subject, flags=flags)
+    if isinstance(text, list):
+        return any([re.fullmatch(expressions, t, flags=flags) for t in text])
 
-        if check_subject:
-            return True
-
-    return re.fullmatch(expressions, comment, flags=flags)
+    return re.fullmatch(expressions, text, flags=flags)
 
 
 def process_text(text):

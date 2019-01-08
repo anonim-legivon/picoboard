@@ -9,7 +9,7 @@ class BoardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Board
 
-        exclude = ('id', 'category',)
+        exclude = ('id', 'category', 'trip_required',)
         lookup_field = 'board'
         extra_kwargs = {
             'url': {'lookup_field': 'board'}

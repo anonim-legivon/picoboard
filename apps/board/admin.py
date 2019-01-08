@@ -5,8 +5,8 @@ from .models import Ban, Board, Category, Post, SpamWord, Thread
 
 class PostsInline(admin.TabularInline):
     model = Post
-    fields = ('is_op_post', 'date', 'subject', 'comment', 'ip')
-    readonly_fields = ('date', 'is_op_post')
+    fields = ('is_op_post', 'timestamp', 'subject', 'comment', 'ip')
+    readonly_fields = ('timestamp', 'is_op_post')
     fk_name = 'thread'
 
 
@@ -36,12 +36,12 @@ class PostAdmin(admin.ModelAdmin):
     list_display = (
         'num', 'thread', 'subject',
         'name', 'tripcode', 'ip',
-        'is_op_post', 'is_deleted', 'date',
+        'is_op_post', 'is_deleted', 'timestamp',
     )
-    list_filter = ('is_op_post', 'date',)
+    list_filter = ('is_op_post', 'timestamp',)
     list_select_related = ('thread',)
     readonly_fields = ('parent', 'is_op_post',)
-    ordering = ('-date',)
+    ordering = ('-timestamp',)
 
 
 class SpamWordAdmin(admin.ModelAdmin):

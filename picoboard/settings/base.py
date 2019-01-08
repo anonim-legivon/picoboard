@@ -191,6 +191,7 @@ REST_FRAMEWORK = {
     },
     'EXCEPTION_HANDLER': 'core.exceptions.api_exception_handler',
     'DEFAULT_CACHE_RESPONSE_TIMEOUT': 60,
+    'DATETIME_FORMAT': '%s',
 }
 
 LOGGING = {
