@@ -177,17 +177,21 @@ CORS_ORIGIN_ALLOW_ALL = env.bool('CORS_ORIGIN_ALLOW_ALL', True)
 CORS_ORIGIN_WHITELIST = env.list('CORS_ORIGIN_WHITELIST', str, '*')
 CORS_ALLOW_HEADERS = default_headers + ('Company', 'Cache-Control')
 
+# Cooldown settings
+COOLDOWN_SECONDS_THREAD = env.int('COOLDOWN_SECONDS_THREAD', 360)
+COOLDOWN_SECONDS_POST = env.int('COOLDOWN_SECONDS_POST', 5)
+
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
     ),
     'SEARCH_PARAM': 'q',
     'DEFAULT_THROTTLE_CLASSES': (
-        'rest_framework.throttling.ScopedRateThrottle',
+        'core.throttling.CustomScopedRateThrottle',
     ),
     'DEFAULT_THROTTLE_RATES': {
-        'thread.create': '2/min',
-        'thread.post': '12/min',
+        'thread.create': COOLDOWN_SECONDS_THREAD,
+        'thread.new_post': COOLDOWN_SECONDS_POST,
     },
     'EXCEPTION_HANDLER': 'core.exceptions.api_exception_handler',
     'DEFAULT_CACHE_RESPONSE_TIMEOUT': 60,

@@ -44,7 +44,7 @@ class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
         return qs
 
     def get_throttles(self):
-        if self.action in ['create', 'post']:
+        if self.action in ['create', 'new_post']:
             self.throttle_scope = 'thread.' + self.action
         return super().get_throttles()
 
@@ -83,8 +83,8 @@ class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
                         headers=headers)
 
     # TODO: Так как функции совпадают пока заменил на вызов create
-    @action(detail=True, methods=['post'])
-    def post(self, request, *args, **kwargs):
+    @action(detail=True, methods=['post'], url_path='post', url_name='post')
+    def new_post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
 
     def perform_create(self, serializer, **kwargs):
