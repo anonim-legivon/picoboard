@@ -14,6 +14,7 @@ import os
 import sys
 
 import environ
+from celery.schedules import crontab
 from corsheaders.defaults import default_headers
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -173,6 +174,16 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_ACKS_LATE = True
+CELERY_BEAT_SCHEDULE = {
+    'clear-db': {
+        'task': 'board.tasks.clear_db',
+        'schedule': crontab(minute='*/1')
+    },
+    'bump-limit-threads': {
+        'task': 'board.tasks.bump_limit_threads',
+        'schedule': crontab(minute='*/1')
+    }
+}
 
 CORS_ORIGIN_ALLOW_ALL = env.bool('CORS_ORIGIN_ALLOW_ALL', True)
 CORS_ORIGIN_WHITELIST = env.list('CORS_ORIGIN_WHITELIST', str, '*')

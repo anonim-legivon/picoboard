@@ -24,3 +24,15 @@ class CustomScopedRateThrottle(ScopedRateThrottle):
         duration = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}[period[0]]
         duration *= time_factor
         return num_requests, duration
+
+    def get_cache_key(self, request, view):
+        if request.user.is_authenticated and request.user.is_staff:
+            # не тротлим админов и модераторов
+            return None
+        else:
+            ident = self.get_ident(request)
+
+        return self.cache_format % {
+            'scope': self.scope,
+            'ident': ident
+        }

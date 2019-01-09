@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from django_regex.fields import RegexField
+from model_utils.models import SoftDeletableModel
 from netfields import CidrAddressField, NetManager
 
 
@@ -84,14 +85,15 @@ class Board(models.Model):
     get_filesize.fget.short_description = _('максимальный размер файлов')
 
 
-class Thread(models.Model):
+class Thread(SoftDeletableModel):
+    all_objects = models.Manager()
+
     board = models.ForeignKey(
         Board, on_delete=models.CASCADE, related_name='threads',
         verbose_name=_('доска'),
     )
     is_pinned = models.BooleanField(_('закреплен'), default=False)
     is_closed = models.BooleanField(_('закрыт'), default=False)
-    is_deleted = models.BooleanField(_('удален'), default=False)
     lasthit = models.DateTimeField(_('последний пост'), auto_now=True)
 
     class Meta:
@@ -100,6 +102,10 @@ class Thread(models.Model):
 
     def __str__(self):
         return f'{self.op_post}'
+
+    def delete(self, *args, **kwargs):
+        self.posts.update(is_removed=True)
+        super().delete(*args, **kwargs)
 
     @cached_property
     def op_post(self):
@@ -140,21 +146,22 @@ class Thread(models.Model):
     bump_limit.fget.short_description = _('бамп лимит')
 
 
-class Post(models.Model):
+class Post(SoftDeletableModel):
+    all_objects = models.Manager()
+
     num = models.PositiveIntegerField(
         _('id поста'), blank=True,
         db_index=True
     )
     thread = models.ForeignKey(
-        Thread, on_delete=models.CASCADE, related_name='posts',
-        verbose_name=_('тред'),
+        Thread, on_delete=models.SET_NULL, null=True,
+        related_name='posts', verbose_name=_('тред'),
     )
     parent = models.PositiveIntegerField(
         _('родитель'), blank=True, db_index=True
     )
     is_op_post = models.BooleanField(_('первый пост в треде'), default=False)
     timestamp = models.DateTimeField(_('время'), auto_now_add=True)
-    is_deleted = models.BooleanField(_('удален'), default=False)
     ip = models.GenericIPAddressField('IP', blank=True, null=True)
     name = models.CharField(
         _('имя'), max_length=48, blank=True,

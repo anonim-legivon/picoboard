@@ -16,7 +16,6 @@ isort = "*"
 [packages]
 django = "==2.1.5"
 amqp = "==2.3.2"
-celery = "==4.2.1"
 django-cors-headers = "==2.4.0"
 django-environ = "==0.4.5"
 django-extensions = "==2.1.4"
@@ -32,6 +31,7 @@ drf-extensions = "==0.4.0"
 django-netfields = "==0.9.0"
 django-rest-recaptcha = "==1.0.2"
 requests = "==2.21.0"
+celery = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.6"

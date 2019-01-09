@@ -14,7 +14,7 @@ class ThreadAdmin(admin.ModelAdmin):
     inlines = (PostsInline,)
     list_display = (
         'board', 'thread_num', 'is_pinned',
-        'is_closed', 'bump_limit', 'is_deleted',
+        'is_closed', 'bump_limit', 'is_removed',
         'lasthit'
     )
     ordering = ('-lasthit',)
@@ -28,6 +28,10 @@ class ThreadAdmin(admin.ModelAdmin):
                 request, form, formsets, change
             )
 
+    def delete_queryset(self, request, queryset):
+        Post.objects.filter(thread__in=queryset).update(is_removed=True)
+        super().delete_queryset(request, queryset)
+
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related('posts')
 
@@ -36,7 +40,7 @@ class PostAdmin(admin.ModelAdmin):
     list_display = (
         'num', 'thread', 'subject',
         'name', 'tripcode', 'ip',
-        'is_op_post', 'is_deleted', 'timestamp',
+        'is_op_post', 'is_removed', 'timestamp',
     )
     list_filter = ('is_op_post', 'timestamp',)
     list_select_related = ('thread',)

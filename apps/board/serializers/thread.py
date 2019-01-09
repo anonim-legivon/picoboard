@@ -4,11 +4,10 @@ from .post import PostSerializer
 from ..models import Thread
 
 THREAD_READ_ONLY_FIELDS = (
-    'is_pinned', 'is_closed', 'is_deleted',
-    'thread_id',
+    'is_pinned', 'is_closed', 'thread_id',
 )
 
-THREAD_EXCLUDE_FIELDS = ('id',)
+THREAD_EXCLUDE_FIELDS = ('id', 'is_removed',)
 
 
 class ThreadPreviewSerializer(serializers.ModelSerializer):
