@@ -10,7 +10,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        exclude = ('id', 'thread', 'is_removed',)
+        exclude = ('id', 'thread',)
         read_only_fields = (
             'tripcode', 'is_deleted', 'num',
             'parent', 'is_op_post', 'thread',

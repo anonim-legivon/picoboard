@@ -14,8 +14,7 @@ class ThreadAdmin(admin.ModelAdmin):
     inlines = (PostsInline,)
     list_display = (
         'board', 'thread_num', 'is_pinned',
-        'is_closed', 'bump_limit', 'is_removed',
-        'lasthit'
+        'is_closed', 'bump_limit', 'lasthit'
     )
     ordering = ('-lasthit',)
 
@@ -40,7 +39,7 @@ class PostAdmin(admin.ModelAdmin):
     list_display = (
         'num', 'thread', 'subject',
         'name', 'tripcode', 'ip',
-        'is_op_post', 'is_removed', 'timestamp',
+        'is_op_post', 'timestamp',
     )
     list_filter = ('is_op_post', 'timestamp',)
     list_select_related = ('thread',)

@@ -7,7 +7,7 @@ THREAD_READ_ONLY_FIELDS = (
     'is_pinned', 'is_closed', 'thread_id',
 )
 
-THREAD_EXCLUDE_FIELDS = ('id', 'is_removed',)
+THREAD_EXCLUDE_FIELDS = ('id',)
 
 
 class ThreadPreviewSerializer(serializers.ModelSerializer):

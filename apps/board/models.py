@@ -85,9 +85,7 @@ class Board(models.Model):
     get_filesize.fget.short_description = _('максимальный размер файлов')
 
 
-class Thread(SoftDeletableModel):
-    all_objects = models.Manager()
-
+class Thread(models.Model):
     board = models.ForeignKey(
         Board, on_delete=models.CASCADE, related_name='threads',
         verbose_name=_('доска'),
@@ -103,9 +101,18 @@ class Thread(SoftDeletableModel):
     def __str__(self):
         return f'{self.op_post}'
 
-    def delete(self, *args, **kwargs):
-        self.posts.update(is_removed=True)
-        super().delete(*args, **kwargs)
+    def save(self, *args, **kwargs):
+        max_threads = self.board.thread_limit
+        total_threads = self.board.threads.count()
+
+        if total_threads > max_threads:
+            delete_count = total_threads - max_threads
+            threads_for_delete = Thread.objects.filter(
+                board=self.board
+            ).order_by('lasthit')[:delete_count]
+            Thread.objects.filter(pk__in=threads_for_delete).delete()
+
+        super().save(*args, **kwargs)
 
     @cached_property
     def op_post(self):
@@ -146,15 +153,13 @@ class Thread(SoftDeletableModel):
     bump_limit.fget.short_description = _('бамп лимит')
 
 
-class Post(SoftDeletableModel):
-    all_objects = models.Manager()
-
+class Post(models.Model):
     num = models.PositiveIntegerField(
         _('id поста'), blank=True,
         db_index=True
     )
     thread = models.ForeignKey(
-        Thread, on_delete=models.SET_NULL, null=True,
+        Thread, on_delete=models.CASCADE,
         related_name='posts', verbose_name=_('тред'),
     )
     parent = models.PositiveIntegerField(
@@ -202,9 +207,10 @@ class Post(SoftDeletableModel):
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        super().delete(*args, **kwargs)
         if self.is_op_post:
             self.thread.delete()
+
+        super().delete(*args, **kwargs)
 
 
 class SpamWord(models.Model):
