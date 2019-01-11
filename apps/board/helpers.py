@@ -1,14 +1,42 @@
+import mimetypes
 import re
+from os.path import splitext
 
+import bleach
+from django.conf import settings
 from django.db.models import DateTimeField, ExpressionWrapper, F, Q
 from django.utils import timezone
 
 from core import helpers
 from .exceptions import (
     BoardNotFound, FileSizeLimitError, ThreadClosedError, ThreadNotFound,
-    UserBannedError, WordInSpamListError
+    UnknownFileTypeError, UserBannedError, WordInSpamListError
 )
 from .models import Ban, Board, SpamWord, Thread
+
+
+def check_files(files, filesize_limit):
+    allowed_mimetypes = (
+        *settings.ALLOWED_IMAGE_TYPES,
+        *settings.ALLOWED_VIDEO_TYPES,
+    )
+
+    total_filesize = sum(f.size for f in files)
+    files_mimetypes = [f.content_type for f in files]
+
+    if not all([mimetype in allowed_mimetypes for mimetype in files_mimetypes]):
+        raise UnknownFileTypeError
+
+    for file in files:
+        file_ext = splitext(file.name)[1]
+        file_type = file.content_type
+        guessed_ext = mimetypes.guess_all_extensions(file_type)
+
+        if not (file_ext in guessed_ext or file_type in allowed_mimetypes):
+            raise UnknownFileTypeError
+
+    if total_filesize > filesize_limit:
+        raise FileSizeLimitError
 
 
 def post_processing(request, serializer, **kwargs):
@@ -35,11 +63,7 @@ def post_processing(request, serializer, **kwargs):
         raise WordInSpamListError
 
     if files:
-        filesize_limit = board.filesize_limit
-        total_filesize = sum(f.size for f in files)
-
-        if total_filesize > filesize_limit:
-            raise FileSizeLimitError
+        check_files(files, board.filesize_limit)
 
     if thread_id:
         try:
@@ -151,6 +175,8 @@ def process_text(text):
     :rtype: str
     """
 
+    allowed_tags = ['b', 'code', 'em', 'i', 'strong']
+    text = bleach.clean(text, tags=allowed_tags)
     new_text = re.sub(r'<', '&lt;', text)
     new_text = re.sub(
         r'(http:.+?)( |\n|$)', r'<a href="\1" target="_blank">\1</a>\2',

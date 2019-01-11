@@ -261,3 +261,6 @@ LOGGING = {
 }
 
 GR_CAPTCHA_SECRET_KEY = env.str('RECAPTCHA_SECRET_KEY', None)
+
+ALLOWED_IMAGE_TYPES = ('image/gif', 'image/jpeg', 'image/png',)
+ALLOWED_VIDEO_TYPES = ('video/wemb', 'video/mp4',)

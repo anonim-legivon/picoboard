@@ -1,5 +1,6 @@
 import hashlib
 import re
+from os.path import splitext
 
 from django.core.files.images import get_image_dimensions
 from django.db import models
@@ -209,9 +210,9 @@ def resolve_save_path(instance, filename):
     now = timezone.now()
     timestamp = int(now.timestamp() * 10000)
     date = now.strftime('%Y/%m/%d')
-    return (
-        f'{date}/{board}/{thread}/{timestamp}.{filename.split(".")[-1:]}'
-    )
+    ext = splitext(filename)[1]
+
+    return f'{date}/{board}/{thread}/{timestamp}{ext}'
 
 
 class File(models.Model):
@@ -222,7 +223,9 @@ class File(models.Model):
         (IMAGE, _('картинка')),
         (VIDEO, _('видео'))
     )
-    file = models.FileField(_('файл'), upload_to=resolve_save_path)
+    file = models.FileField(
+        _('файл'), upload_to=resolve_save_path,
+    )
     post = models.ForeignKey(
         Post, on_delete=models.CASCADE, related_name='files',
         verbose_name=_('пост')
@@ -250,6 +253,7 @@ class File(models.Model):
                 width, height = get_image_dimensions(self.file.file)
                 self.width = width
                 self.height = height
+
             self.fullname = self.file.name
             md5 = hashlib.md5()
             for chunk in self.file.chunks():

@@ -54,6 +54,12 @@ class FileSizeLimitError(APIException):
     default_code = 'file_size_limit_error'
 
 
+class UnknownFileTypeError(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = _('Один или несколько файлов не поддерживаются')
+    default_code = 'unknown_file_type_error'
+
+
 class PostThrottled(Throttled):
     default_detail = _('Вы постите слишком быстро.')
     extra_detail_singular = 'Постинг будет доступен через {wait} секунд.'
