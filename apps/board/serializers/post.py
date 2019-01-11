@@ -1,12 +1,31 @@
 from recaptcha.fields import ReCaptchaField
 from rest_framework import serializers
 
-from ..models import Post
+from ..models import File, Post
+
+
+class FileSerializer(serializers.ModelSerializer):
+    size = serializers.ReadOnlyField(source='file.size')
+    path = serializers.ReadOnlyField(source='file.url')
+    name = serializers.SerializerMethodField()
+
+    class Meta:
+        exclude = ('id', 'post', 'file',)
+        model = File
+
+    def get_name(self, obj):
+        name = obj.file.name.split('/')[-1:][0]
+        return name
 
 
 class PostSerializer(serializers.ModelSerializer):
     recaptcha = ReCaptchaField(write_only=True)
     comment = serializers.CharField(required=True, max_length=15000)
+    post_files = serializers.ListField(
+        child=serializers.FileField(use_url=False),
+        required=False, write_only=True
+    )
+    files = FileSerializer(many=True, read_only=True, required=False)
 
     class Meta:
         model = Post
@@ -28,9 +47,20 @@ class PostSerializer(serializers.ModelSerializer):
         validated_data.pop('recaptcha', None)
         validated_data['comment'] = self.context.get('comment')
 
+        files = validated_data.pop('post_files', None)
+
         post = Post.objects.create(
             thread=thread, is_op_post=is_op_post, parent=parent,
             **validated_data
         )
+
+        if files:
+            related = []
+            for file in files:
+                file = File(file=file, post=post, type=0)
+                file.save()
+                related.append(file)
+
+            post.files.add(*related)
 
         return post

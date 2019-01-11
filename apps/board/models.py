@@ -1,5 +1,7 @@
+import hashlib
 import re
 
+from django.core.files.images import get_image_dimensions
 from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -29,7 +31,7 @@ class Board(models.Model):
     )
     board = models.CharField(_('название'), max_length=32, unique=True)
     board_name = models.CharField(
-        _('название доски'), max_length=48, blank=True
+        _('название доски'), max_length=48,
     )
     description = models.TextField(_('описание'), blank=True, default='')
     bump_limit = models.PositiveSmallIntegerField(
@@ -101,23 +103,10 @@ class Thread(models.Model):
     def __str__(self):
         return f'{self.op_post}'
 
-    def save(self, *args, **kwargs):
-        max_threads = self.board.thread_limit
-        total_threads = self.board.threads.count()
-
-        if total_threads > max_threads:
-            delete_count = total_threads - max_threads
-            threads_for_delete = Thread.objects.filter(
-                board=self.board
-            ).order_by('lasthit')[:delete_count]
-            Thread.objects.filter(pk__in=threads_for_delete).delete()
-
-        super().save(*args, **kwargs)
-
     @cached_property
     def op_post(self):
         """
-        Метод из списка всех постов в тереде 
+        Метод из списка всех постов в тереде
         ищет иденственный пост с пометкой `is_op_post` и возвращает его
         """
         for post in self.posts.all():
@@ -211,6 +200,63 @@ class Post(models.Model):
             self.thread.delete()
 
         super().delete(*args, **kwargs)
+
+
+def resolve_save_path(instance, filename):
+    thread = instance.post.thread.thread_num
+    board = instance.post.thread.board.board
+
+    now = timezone.now()
+    timestamp = int(now.timestamp() * 10000)
+    date = now.strftime('%Y/%m/%d')
+    return (
+        f'{date}/{board}/{thread}/{timestamp}.{filename.split(".")[-1:]}'
+    )
+
+
+class File(models.Model):
+    IMAGE = 0
+    VIDEO = 1
+
+    TYPES = (
+        (IMAGE, _('картинка')),
+        (VIDEO, _('видео'))
+    )
+    file = models.FileField(_('файл'), upload_to=resolve_save_path)
+    post = models.ForeignKey(
+        Post, on_delete=models.CASCADE, related_name='files',
+        verbose_name=_('пост')
+    )
+    fullname = models.CharField(
+        _('оригинальное название'), max_length=255, db_index=True
+    )
+    height = models.IntegerField(_('высота'), blank=True, default=0)
+    width = models.IntegerField(_('ширина'), blank=True, default=0)
+    type = models.PositiveSmallIntegerField(
+        choices=TYPES, verbose_name=_('тип')
+    )
+    md5 = models.TextField(_('MD5 хэш'), blank=True, default='')
+
+    class Meta:
+        verbose_name = _('файл')
+        verbose_name_plural = _('файлы')
+
+    def __str__(self):
+        return f'{self.file.name}'
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            if self.type == self.IMAGE:
+                width, height = get_image_dimensions(self.file.file)
+                self.width = width
+                self.height = height
+            self.fullname = self.file.name
+            md5 = hashlib.md5()
+            for chunk in self.file.chunks():
+                md5.update(chunk)
+            self.md5 = md5.hexdigest()
+
+        super().save(*args, **kwargs)
 
 
 class SpamWord(models.Model):

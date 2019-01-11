@@ -193,6 +193,11 @@ COOLDOWN_SECONDS_THREAD = env.int('COOLDOWN_SECONDS_THREAD', 360)
 COOLDOWN_SECONDS_POST = env.int('COOLDOWN_SECONDS_POST', 5)
 
 REST_FRAMEWORK = {
+    'DEFAULT_PARSER_CLASSES': (
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser',
+    ),
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
     ),
@@ -201,7 +206,7 @@ REST_FRAMEWORK = {
         'core.throttling.CustomScopedRateThrottle',
     ),
     'DEFAULT_THROTTLE_RATES': {
-        'thread.create': 1,
+        'thread.create': COOLDOWN_SECONDS_THREAD,
         'thread.new_post': COOLDOWN_SECONDS_POST,
     },
     'EXCEPTION_HANDLER': 'core.exceptions.api_exception_handler',

@@ -5,8 +5,8 @@ from django.utils import timezone
 
 from core import helpers
 from .exceptions import (
-    BoardNotFound, ThreadClosedError, ThreadNotFound, UserBannedError,
-    WordInSpamListError
+    BoardNotFound, FileSizeLimitError, ThreadClosedError, ThreadNotFound,
+    UserBannedError, WordInSpamListError
 )
 from .models import Ban, Board, SpamWord, Thread
 
@@ -15,9 +15,10 @@ def post_processing(request, serializer, **kwargs):
     board_name = kwargs.get('board_board')
     thread_id = kwargs.get('posts__num')
 
-    subject = serializer.validated_data.get('subject')[:40]
+    subject = serializer.validated_data.get('subject', '')[:40]
     comment = serializer.validated_data.get('comment')
     sage = serializer.validated_data.get('sage')
+    files = serializer.validated_data.get('post_files')
 
     try:
         board = Board.objects.get(board=board_name)
@@ -32,6 +33,13 @@ def post_processing(request, serializer, **kwargs):
 
     if check_spam(text=[comment, subject], board=board):
         raise WordInSpamListError
+
+    if files:
+        filesize_limit = board.filesize_limit
+        total_filesize = sum(f.size for f in files)
+
+        if total_filesize > filesize_limit:
+            raise FileSizeLimitError
 
     if thread_id:
         try:
@@ -49,6 +57,8 @@ def post_processing(request, serializer, **kwargs):
         thread = Thread.objects.create(board=board)
         is_op_post = True
         parent = 0
+
+        trim_database(board)
 
     serializer.context['thread'] = thread
     serializer.context['is_op_post'] = is_op_post
@@ -70,13 +80,20 @@ def post_processing(request, serializer, **kwargs):
         'tripcode': tripcode,
         'ip': ip,
         'subject': subject,
-        'sage': sage
+        'sage': sage,
     }
 
     return serializer, post_kwargs
 
 
 def check_ban(ip, board):
+    """
+    Проверка постера на бан по доске
+    :param ip: IP постера
+    :param board: Текущая доска
+    :raises: UserBannedError, если постер заблокирован
+    """
+
     now = timezone.now()
 
     until = ExpressionWrapper(
@@ -127,6 +144,13 @@ def check_spam(text, board):
 
 
 def process_text(text):
+    """
+    Меняем псевдоразметку на html
+    :param text: Сообщение поста
+    :return: Сообщение с разметкой
+    :rtype: str
+    """
+
     new_text = re.sub(r'<', '&lt;', text)
     new_text = re.sub(
         r'(http:.+?)( |\n|$)', r'<a href="\1" target="_blank">\1</a>\2',
@@ -155,3 +179,29 @@ def process_text(text):
     )
 
     return new_text
+
+
+def trim_database(board):
+    """
+    Чистим базу данных каждый раз при создании тредов
+    Удаляем треды, которые выходят за максимальное количество тредов доски
+    :param board: Доска которую будем чистить
+    :return: Число удаленных тредов
+    :rtype: int
+    """
+
+    deleted_count = 0
+    max_threads = board.thread_limit
+    total_threads = board.threads.count()
+
+    if total_threads >= max_threads:
+        delete_count = total_threads - max_threads
+        threads_for_delete = Thread.objects.filter(
+            board=board
+        ).order_by('lasthit')[:delete_count]
+
+        _, deleted_count = Thread.objects.filter(
+            pk__in=threads_for_delete
+        ).delete()
+
+    return deleted_count

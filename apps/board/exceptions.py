@@ -1,6 +1,9 @@
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status
-from rest_framework.exceptions import APIException, NotFound, PermissionDenied
+from rest_framework.exceptions import (
+    APIException, NotFound, PermissionDenied,
+    Throttled
+)
 
 
 class BoardNotFound(NotFound):
@@ -43,3 +46,16 @@ class UserBannedError(PermissionDenied):
             self.until = until
 
         super().__init__(detail, code)
+
+
+class FileSizeLimitError(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = _('Превышен лимит на размер файлов')
+    default_code = 'file_size_limit_error'
+
+
+class PostThrottled(Throttled):
+    default_detail = _('Вы постите слишком быстро.')
+    extra_detail_singular = 'Постинг будет доступен через {wait} секунд.'
+    extra_detail_plural = 'Постинг будет доступен через {wait} секунд.'
+    default_code = 'post_throttled'

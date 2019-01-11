@@ -6,6 +6,7 @@ from rest_framework.viewsets import GenericViewSet, ReadOnlyModelViewSet
 from rest_framework_extensions.cache.decorators import cache_response
 from rest_framework_extensions.cache.mixins import CacheResponseMixin
 
+from board.exceptions import PostThrottled
 from core.mixins import CreateListRetrieveMixin
 from .helpers import post_processing
 from .models import Board, Category, Thread
@@ -40,13 +41,16 @@ class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
             qs = qs.select_related('board')
             qs = qs.order_by('-is_pinned', '-lasthit')
 
-        qs = qs.prefetch_related('posts')
+        qs = qs.prefetch_related('posts', 'posts__files')
         return qs
 
     def get_throttles(self):
         if self.action in ['create', 'new_post']:
             self.throttle_scope = 'thread.' + self.action
         return super().get_throttles()
+
+    def throttled(self, request, wait):
+        raise PostThrottled(wait)
 
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())
