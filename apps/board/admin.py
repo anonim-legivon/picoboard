@@ -71,12 +71,15 @@ class CategoryAdmin(admin.ModelAdmin):
 class BanAdmin(admin.ModelAdmin):
     list_display = (
         'inet', 'board', 'for_all_boards',
-        'duration', 'created',
+        'duration', 'banned_at', 'until',
     )
-    list_filter = ('board', 'for_all_boards', 'created',)
+    list_filter = (
+        'board', 'for_all_boards', 'banned_at',
+        'until',
+    )
     search_fields = ('inet',)
-    readonly_fields = ('created',)
-    ordering = ('-created',)
+    readonly_fields = ('banned_at', 'until',)
+    ordering = ('-banned_at',)
 
     list_select_related = ('board',)
 

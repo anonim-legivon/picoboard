@@ -15,12 +15,21 @@ DATABASES['default']['PORT'] = 25432
 MIDDLEWARE.insert(0, 'nplusone.ext.django.NPlusOneMiddleware')
 NPLUSONE_LOGGER = logging.getLogger('nplusone')
 NPLUSONE_LOG_LEVEL = logging.WARN
-
-LOGGING['loggers']['nplusone'] = {
-    'handlers': ['console'],
-    'level': 'WARN',
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'nplusone': {
+            'level': 'WARN',
+            'handlers': ['console'],
+        }
+    },
 }
 
 # Отключаем игнорирование ошибок кеширования редисом для дебага
 CACHES['default']['OPTIONS']['IGNORE_EXCEPTIONS'] = False
-

@@ -1,6 +1,6 @@
 import hashlib
 import re
-from os.path import splitext
+from os.path import basename
 
 from django.core.files.images import get_image_dimensions
 from django.db import models
@@ -10,6 +10,8 @@ from django.utils.translation import gettext_lazy as _
 from django_regex.fields import RegexField
 from model_utils.models import SoftDeletableModel
 from netfields import CidrAddressField, NetManager
+
+from .helpers import resolve_save_path
 
 
 class Category(models.Model):
@@ -203,18 +205,6 @@ class Post(models.Model):
         super().delete(*args, **kwargs)
 
 
-def resolve_save_path(instance, filename):
-    thread = instance.post.thread.thread_num
-    board = instance.post.thread.board.board
-
-    now = timezone.now()
-    timestamp = int(now.timestamp() * 10000)
-    date = now.strftime('%Y/%m/%d')
-    ext = splitext(filename)[1]
-
-    return f'{date}/{board}/{thread}/{timestamp}{ext}'
-
-
 class File(models.Model):
     IMAGE = 0
     VIDEO = 1
@@ -262,10 +252,14 @@ class File(models.Model):
 
         super().save(*args, **kwargs)
 
+    @cached_property
+    def name(self):
+        return basename(self.file.name)
+
 
 class SpamWord(models.Model):
     expression = RegexField(
-        flags=re.IGNORECASE, verbose_name=_('регулярное выражение')
+        flags=(re.I | re.M), verbose_name=_('регулярное выражение')
     )
     boards = models.ManyToManyField(
         'Board', related_name='spam_words', blank=True,
@@ -303,16 +297,19 @@ class Ban(models.Model):
     for_all_boards = models.BooleanField(_('для всех досок'), default=False)
     reason = models.TextField(_('причина'), blank=True, default='')
     duration = models.DurationField(_('длительность'))
-    created = models.DateTimeField(_('создан'), auto_now_add=True)
+    banned_at = models.DateTimeField(_('забанен'), default=timezone.now)
+    until = models.DateTimeField(_('бан до'), blank=True)
 
     class Meta:
         verbose_name = _('бан')
         verbose_name_plural = _('баны')
 
     def __str__(self):
-        return f'Бан: {self.inet} [{self.duration}]'
+        return f'Бан: {self.inet} [{self.banned_at} - {self.until}]'
 
     def save(self, *args, **kwargs):
+        self.until = self.banned_at + self.duration
+
         if self.for_all_boards:
             self.board = None
         if not self.board:

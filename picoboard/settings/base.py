@@ -98,7 +98,7 @@ DATABASES = {
         'PORT': env.int('POSTGRES_PORT', 5432),
         'NAME': env.str('POSTGRES_DB', 'picoboard'),
         'ATOMIC_REQUESTS': True,
-        'CONN_MAX_AGE': env.int('CONN_MAX_AGE', default=60)
+        'CONN_MAX_AGE': env.int('CONN_MAX_AGE', default=(60 * 10))
     }
 }
 
@@ -264,3 +264,5 @@ GR_CAPTCHA_SECRET_KEY = env.str('RECAPTCHA_SECRET_KEY', None)
 
 ALLOWED_IMAGE_TYPES = ('image/gif', 'image/jpeg', 'image/png',)
 ALLOWED_VIDEO_TYPES = ('video/wemb', 'video/mp4',)
+ALLOWED_TAGS = ['b', 'code', 'em', 'i', 'strong']
+ALLOWED_STYLES = []

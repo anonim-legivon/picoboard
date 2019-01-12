@@ -8,9 +8,9 @@ from rest_framework_extensions.cache.mixins import CacheResponseMixin
 
 from board.exceptions import PostThrottled
 from core.mixins import CreateListRetrieveMixin
-from .helpers import post_processing
 from .models import Board, Category, Thread
 from .pagination import ThreadLimitOffsetPagination
+from .processing import post_processing
 from .serializers import (
     BoardSerializer,
     CategorySerializer,
