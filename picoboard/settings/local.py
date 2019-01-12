@@ -24,6 +24,10 @@ LOGGING = {
         },
     },
     'loggers': {
+        'django.db.backends': {
+            'level': 'DEBUG',
+            'handlers': ['console'],
+        },
         'nplusone': {
             'level': 'WARN',
             'handlers': ['console'],

@@ -9,7 +9,7 @@ from rest_framework_extensions.cache.mixins import CacheResponseMixin
 from board.exceptions import PostThrottled
 from core.mixins import CreateListRetrieveMixin
 from .models import Board, Category, Thread
-from .pagination import ThreadLimitOffsetPagination
+from .pagination import ThreadPageNumberPagination
 from .processing import post_processing
 from .serializers import (
     BoardSerializer,
@@ -21,7 +21,7 @@ from .serializers import (
 
 
 class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
-    pagination_class = ThreadLimitOffsetPagination
+    pagination_class = ThreadPageNumberPagination
 
     lookup_field = 'posts__num'
 
@@ -103,6 +103,12 @@ class BoardViewSet(CacheResponseMixin, ReadOnlyModelViewSet, GenericViewSet):
     queryset = Board.objects.all()
     serializer_class = BoardSerializer
     lookup_field = 'board'
+
+    def get_queryset(self):
+        if self.action == 'list':
+            return Board.objects.filter(is_hidden=False)
+
+        return self.queryset
 
 
 class CategoryViewSet(CacheResponseMixin, ReadOnlyModelViewSet, GenericViewSet):

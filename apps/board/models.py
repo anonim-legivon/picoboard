@@ -17,7 +17,6 @@ from .helpers import resolve_save_path
 class Category(models.Model):
     name = models.CharField(_('категория'), max_length=128, unique=True)
     order = models.SmallIntegerField(_('порядок'))
-    is_hidden = models.BooleanField(_('доска скрыта'), default=False)
 
     class Meta:
         verbose_name = _('категория')
@@ -58,6 +57,8 @@ class Board(models.Model):
     default_name = models.CharField(
         _('имя в постах'), max_length=48, default=_('Аноним')
     )
+    enable_roulette = models.BooleanField(_('включены кубики'), default=False)
+    is_hidden = models.BooleanField(_('доска скрыта'), default=False)
 
     class Meta:
         verbose_name = _('доска')

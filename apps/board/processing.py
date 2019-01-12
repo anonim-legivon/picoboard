@@ -12,6 +12,7 @@ from .exceptions import (
     BoardNotFound, FileSizeLimitError, ThreadClosedError, ThreadNotFound,
     UnknownFileTypeError, UserBannedError, WordInSpamListError
 )
+from .helpers import roulette
 from .models import Ban, Board, SpamWord, Thread
 
 
@@ -35,8 +36,7 @@ def post_processing(request, serializer, **kwargs):
     subject = subject if board.enable_subject else ''
     sage = sage if board.enable_sage else False
 
-    if check_spam(text=[comment, subject], board=board):
-        raise WordInSpamListError
+    check_spam(board, subject, comment)
 
     if files:
         check_files(files, board.filesize_limit)
@@ -63,7 +63,7 @@ def post_processing(request, serializer, **kwargs):
     serializer.context['thread'] = thread
     serializer.context['is_op_post'] = is_op_post
     serializer.context['parent'] = parent
-    serializer.context['comment'] = process_text(comment)
+    serializer.context['comment'] = process_text(comment, board.enable_roulette)
 
     name = serializer.validated_data.get('name') or board.default_name
 
@@ -111,13 +111,12 @@ def check_ban(ip, board):
         raise UserBannedError(reason=ban.reason, until=until)
 
 
-def check_spam(text, board):
+def check_spam(board, *args):
     """
     Проверяем сообщение на содержания в нем слов из спам листа
-    :param text: Текст для проверки
+    :param args: Тексты для проверки
+    :type args: str
     :param board: Доска
-    :return: Содержится ли слово в спам листе
-    :rtype: bool
     """
 
     spam_filters = SpamWord.objects.filter(
@@ -125,19 +124,16 @@ def check_spam(text, board):
     ).values_list('expression', flat=True)
 
     if not spam_filters.exists():
-        return False
+        return
 
+    text = ' '.join(args)
     flags = (re.IGNORECASE | re.MULTILINE)
     expressions = '|'.join(
         '(?:{0})'.format(x) for x in spam_filters
     )
 
-    if isinstance(text, list):
-        return any(
-            [re.fullmatch(expressions, t, flags=flags) for t in text if t]
-        )
-
-    return re.fullmatch(expressions, text, flags=flags)
+    if re.search(expressions, text, flags=flags):
+        raise WordInSpamListError
 
 
 def check_files(files, filesize_limit):
@@ -147,10 +143,6 @@ def check_files(files, filesize_limit):
     )
 
     total_filesize = sum(f.size for f in files)
-    files_mimetypes = [f.content_type for f in files]
-
-    if not all([mimetype in allowed_mimetypes for mimetype in files_mimetypes]):
-        raise UnknownFileTypeError
 
     for file in files:
         file_ext = splitext(file.name)[1]
@@ -164,10 +156,11 @@ def check_files(files, filesize_limit):
         raise FileSizeLimitError
 
 
-def process_text(text):
+def process_text(text, enable_roulette):
     """
     Меняем псевдоразметку на html
-    :param text: Сообщение поста
+    :param str text: Сообщение поста
+    :param bool enable_roulette: Обрабатывать рулетку
     :return: Сообщение с разметкой и экранированным html
     :rtype: str
     """
@@ -196,9 +189,13 @@ def process_text(text):
     text = re.sub(r'>>([0-9]+)', post_link_markup, text)
     text = re.sub(r'(^|\n)(>.+?)(\n|$)', quote_markup, text, flags=re.M)
 
+    if enable_roulette:
+        text = re.sub(r'([0-9]+)RL([0-9]+)', roulette, text)
+
     return text
 
 
+# TODO: Сделать кастомный менеджер для softdelete
 def trim_database(board):
     """
     Чистим базу данных каждый раз при создании тредов

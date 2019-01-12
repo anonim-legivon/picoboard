@@ -8,8 +8,8 @@ def api_exception_handler(exc, context):
         if hasattr(exc, 'default_code'):
             response.data['code'] = exc.default_code
 
-        # FIXME: Какая-то ебанина с isinstance(exc, UserBannedError)
-        #        надо проверить
+            # FIXME: Какая-то ебанина с isinstance(exc, UserBannedError)
+            #        надо проверить
             if exc.default_code == 'user_banned_error':
                 response.data['reason'] = exc.reason
                 response.data['until'] = exc.until

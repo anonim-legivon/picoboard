@@ -57,14 +57,15 @@ class SpamWordAdmin(admin.ModelAdmin):
 
 class BoardAdmin(admin.ModelAdmin):
     list_display = (
-        'board', 'board_name', 'category', 'bump_limit',
-        'thread_limit', 'get_filesize',
+        'board', 'board_name', 'category',
+        'bump_limit', 'is_hidden', 'thread_limit',
+        'get_filesize',
     )
 
 
 class CategoryAdmin(admin.ModelAdmin):
     list_display = (
-        'name', 'order', 'is_hidden',
+        'name', 'order',
     )
 
 
