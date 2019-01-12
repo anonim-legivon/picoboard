@@ -9,8 +9,8 @@ from django.utils import timezone
 
 from core import helpers
 from .exceptions import (
-    BoardNotFound, FileSizeLimitError, ThreadClosedError, ThreadNotFound,
-    UnknownFileTypeError, UserBannedError, WordInSpamListError
+    BoardNotFound, FileSizeLimitError, ImageRequiredError, ThreadClosedError,
+    ThreadNotFound, UnknownFileTypeError, UserBannedError, WordInSpamListError
 )
 from .helpers import roulette
 from .models import Ban, Board, SpamWord, Thread
@@ -39,7 +39,9 @@ def post_processing(request, serializer, **kwargs):
     check_spam(board, subject, comment)
 
     if files:
-        check_files(files, board.filesize_limit)
+        check_files(files, board.filesize_limit, board.image_required)
+    elif board.image_required:
+        raise ImageRequiredError
 
     if thread_id:
         try:
@@ -52,7 +54,6 @@ def post_processing(request, serializer, **kwargs):
 
         is_op_post = False
         parent = thread.thread_num
-
     else:
         thread = Thread.objects.create(board=board)
         is_op_post = True
@@ -136,13 +137,14 @@ def check_spam(board, *args):
         raise WordInSpamListError
 
 
-def check_files(files, filesize_limit):
+def check_files(files, filesize_limit, image_required):
     allowed_mimetypes = (
         *settings.ALLOWED_IMAGE_TYPES,
         *settings.ALLOWED_VIDEO_TYPES,
     )
 
     total_filesize = sum(f.size for f in files)
+    has_image = False
 
     for file in files:
         file_ext = splitext(file.name)[1]
@@ -151,6 +153,12 @@ def check_files(files, filesize_limit):
 
         if not (file_ext in guessed_ext or file_type in allowed_mimetypes):
             raise UnknownFileTypeError
+
+        if file_type in settings.ALLOWED_IMAGE_TYPES:
+            has_image = True
+
+    if image_required and not has_image:
+        raise ImageRequiredError
 
     if total_filesize > filesize_limit:
         raise FileSizeLimitError

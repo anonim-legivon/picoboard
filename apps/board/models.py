@@ -1,5 +1,6 @@
 import hashlib
 import re
+from functools import reduce
 from os.path import basename
 
 from django.core.files.images import get_image_dimensions
@@ -59,6 +60,9 @@ class Board(models.Model):
     )
     enable_roulette = models.BooleanField(_('включены кубики'), default=False)
     is_hidden = models.BooleanField(_('доска скрыта'), default=False)
+    image_required = models.BooleanField(
+        _('требовать изображение'), default=False
+    )
 
     class Meta:
         verbose_name = _('доска')
@@ -134,6 +138,10 @@ class Thread(models.Model):
             if t_length < 5 else
             thread_posts[t_length - 3:t_length]
         )
+
+    @property
+    def files_count(self):
+        return reduce((lambda c, p: c + p.files.count()), self.posts.all(), 0)
 
     @property
     def posts_count(self):

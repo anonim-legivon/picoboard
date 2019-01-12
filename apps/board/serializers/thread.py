@@ -14,9 +14,10 @@ class ThreadPreviewSerializer(serializers.ModelSerializer):
     op_post = PostSerializer(many=False)
     last_posts = PostSerializer(many=True)
 
-    thread_id = serializers.ReadOnlyField()
+    thread_num = serializers.ReadOnlyField()
     posts_count = serializers.ReadOnlyField()
     board = serializers.ReadOnlyField(source='board.board')
+    files_count = serializers.ReadOnlyField()
 
     class Meta:
         model = Thread
@@ -27,8 +28,10 @@ class ThreadPreviewSerializer(serializers.ModelSerializer):
 class ThreadSerializer(serializers.ModelSerializer):
     posts = PostSerializer(many=True)
 
+    thread_num = serializers.ReadOnlyField()
     posts_count = serializers.ReadOnlyField()
     board = serializers.ReadOnlyField(source='board.board')
+    files_count = serializers.ReadOnlyField()
 
     class Meta:
         model = Thread
