@@ -1,6 +1,5 @@
 import hashlib
 import re
-from functools import reduce
 from os.path import basename
 
 from django.core.files.images import get_image_dimensions
@@ -140,12 +139,12 @@ class Thread(models.Model):
         )
 
     @property
-    def files_count(self):
-        return reduce((lambda c, p: c + p.files.count()), self.posts.all(), 0)
-
-    @property
     def posts_count(self):
         return self.posts.count()
+
+    @property
+    def files_count(self):
+        return sum([post.files.count() for post in self.posts.all()])
 
     @property
     def bump_limit(self):
