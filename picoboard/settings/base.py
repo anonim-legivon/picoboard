@@ -269,3 +269,6 @@ ALLOWED_IMAGE_TYPES = ('image/gif', 'image/jpeg', 'image/png',)
 ALLOWED_VIDEO_TYPES = ('video/wemb', 'video/mp4',)
 ALLOWED_TAGS = ['b', 'code', 'em', 'i', 'strong']
 ALLOWED_STYLES = []
+
+PROXY_ALLOWED = env.bool('PROXY_ALLOWED', False)
+PROXY_PORTS = env.list('PROXY_PORTS', int, [80, 8080])

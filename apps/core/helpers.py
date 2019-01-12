@@ -1,4 +1,7 @@
+import socket
 from crypt import crypt
+
+from django.conf import settings
 
 
 def get_remote_ip(request):
@@ -16,6 +19,21 @@ def get_remote_ip(request):
         ip = request.META.get('REMOTE_ADDR')
 
     return ip
+
+
+def is_proxy_connect(host):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        for port in settings.PROXY_PORTS:
+            sock.connect((host, port))
+    except ConnectionRefusedError:
+        is_proxy = False
+    else:
+        is_proxy = True
+    finally:
+        sock.close()
+
+    return is_proxy
 
 
 def tripcode(uid):

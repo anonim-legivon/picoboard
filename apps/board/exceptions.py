@@ -19,18 +19,18 @@ class ThreadNotFound(NotFound):
 class WordInSpamListError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = _('Пост содержит слово из спам листа')
-    default_code = 'word_in_spam_list_error'
+    default_code = 'word_in_spam_list'
 
 
 class ThreadClosedError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = _('Тред закрыт')
-    default_code = 'thread_closed_error'
+    default_code = 'thread_closed'
 
 
 class UserBannedError(PermissionDenied):
     default_detail = _('Ваш IP адрес заблокирован')
-    default_code = 'user_banned_error'
+    default_code = 'user_banned'
 
     reason = None
     until = None
@@ -51,19 +51,19 @@ class UserBannedError(PermissionDenied):
 class FileSizeLimitError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = _('Превышен лимит на размер файлов')
-    default_code = 'file_size_limit_error'
+    default_code = 'file_size_limit'
 
 
 class UnknownFileTypeError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = _('Один или несколько файлов не поддерживаются')
-    default_code = 'unknown_file_type_error'
+    default_code = 'unknown_file_type'
 
 
 class ImageRequiredError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = _('Доска требует картинку в посте')
-    default_code = 'image_required_error'
+    default_code = 'image_required'
 
 
 class PostThrottled(Throttled):
@@ -71,3 +71,8 @@ class PostThrottled(Throttled):
     extra_detail_singular = 'Постинг будет доступен через {wait} секунд.'
     extra_detail_plural = 'Постинг будет доступен через {wait} секунд.'
     default_code = 'post_throttled'
+
+
+class ProxyDisallowed(PermissionDenied):
+    default_detail = _('Использование прокси запрещено')
+    default_code = 'proxy_disallowed'

@@ -9,8 +9,9 @@ from django.utils import timezone
 
 from core import helpers
 from .exceptions import (
-    BoardNotFound, FileSizeLimitError, ImageRequiredError, ThreadClosedError,
-    ThreadNotFound, UnknownFileTypeError, UserBannedError, WordInSpamListError
+    BoardNotFound, FileSizeLimitError, ImageRequiredError, ProxyDisallowed,
+    ThreadClosedError, ThreadNotFound, UnknownFileTypeError, UserBannedError,
+    WordInSpamListError
 )
 from .helpers import roulette
 from .models import Ban, Board, SpamWord, Thread
@@ -31,6 +32,11 @@ def post_processing(request, serializer, **kwargs):
         raise BoardNotFound
 
     ip = helpers.get_remote_ip(request)
+
+    if not settings.PROXY_ALLOWED:
+        if helpers.is_proxy_connect(ip):
+            raise ProxyDisallowed
+
     check_ban(ip, board)
 
     subject = subject if board.enable_subject else ''
