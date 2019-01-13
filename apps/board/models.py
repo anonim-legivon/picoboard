@@ -1,8 +1,10 @@
 import hashlib
+import io
 import re
-from os.path import basename
+from os.path import basename, splitext
 
 from django.core.files.images import get_image_dimensions
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -11,7 +13,9 @@ from django_regex.fields import RegexField
 from model_utils.models import SoftDeletableModel
 from netfields import CidrAddressField, NetManager
 
-from .helpers import resolve_save_path
+from .helpers import (
+    make_thumb, resolve_save_path, resolve_thumb_path
+)
 
 
 class Category(models.Model):
@@ -116,6 +120,7 @@ class Thread(models.Model):
         Метод из списка всех постов в тереде
         ищет иденственный пост с пометкой `is_op_post` и возвращает его
         """
+
         for post in self.posts.all():
             if post.is_op_post:
                 return post
@@ -237,6 +242,17 @@ class File(models.Model):
         choices=TYPES, verbose_name=_('тип')
     )
     md5 = models.TextField(_('MD5 хэш'), blank=True, default='')
+    thumbnail = models.ImageField(
+        _('thumbnail'), blank=True, upload_to=resolve_thumb_path,
+        height_field='tn_height', width_field='tn_width'
+    )
+    duration = models.PositiveIntegerField(
+        _('длительность'), blank=True, null=True
+    )
+    tn_height = models.IntegerField(
+        _('высота thumbnail'), blank=True, default=0
+    )
+    tn_width = models.IntegerField(_('ширина thumbnail'), blank=True, default=0)
 
     class Meta:
         verbose_name = _('файл')
@@ -253,10 +269,32 @@ class File(models.Model):
                 self.height = height
 
             self.fullname = self.file.name
+            now = timezone.now()
+            timestamp = int(now.timestamp() * 10000)
+            ext = splitext(self.file.name)[1].lower()
+            self.file.name = f'{timestamp}{ext}'
+            thumb_name = f'{timestamp}s.jpg'
+
+            self.file.seek(0)
+            temp_buffer = io.BytesIO(self.file.read())
+
             md5 = hashlib.md5()
-            for chunk in self.file.chunks():
-                md5.update(chunk)
+            md5.update(temp_buffer.getvalue())
             self.md5 = md5.hexdigest()
+
+            if self.type == self.VIDEO:
+                thumb, duration, width, height = make_thumb(
+                    self.type, temp_buffer
+                )
+                self.width = width
+                self.height = height
+                self.duration = duration
+            else:
+                thumb = make_thumb(self.type, temp_buffer)
+
+            self.thumbnail = InMemoryUploadedFile(
+                thumb, None, thumb_name, 'image/jpeg', thumb.tell(), None
+            )
 
         super().save(*args, **kwargs)
 

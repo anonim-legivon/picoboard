@@ -153,7 +153,7 @@ def check_files(files, filesize_limit, image_required):
     has_image = False
 
     for file in files:
-        file_ext = splitext(file.name)[1]
+        file_ext = splitext(file.name)[1].lower()
         file_type = file.content_type
         guessed_ext = mimetypes.guess_all_extensions(file_type)
 

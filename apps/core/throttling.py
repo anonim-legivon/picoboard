@@ -1,7 +1,11 @@
 from rest_framework.throttling import ScopedRateThrottle
 
 
-class CustomScopedRateThrottle(ScopedRateThrottle):
+class BoardScopedRateThrottle(ScopedRateThrottle):
+    """
+    Троттлер позволяющий указать минимальную задержку между повторными запросами
+    """
+
     def parse_rate(self, rate):
         if rate is None:
             return None, None
@@ -26,8 +30,11 @@ class CustomScopedRateThrottle(ScopedRateThrottle):
         return num_requests, duration
 
     def get_cache_key(self, request, view):
+        """
+        Переопределяем, чтобы не тротлить админов и модераторов
+        """
+
         if request.user.is_authenticated and request.user.is_staff:
-            # не тротлим админов и модераторов
             return None
         else:
             ident = self.get_ident(request)

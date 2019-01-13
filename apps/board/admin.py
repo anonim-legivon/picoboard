@@ -27,10 +27,6 @@ class ThreadAdmin(admin.ModelAdmin):
                 request, form, formsets, change
             )
 
-    def delete_queryset(self, request, queryset):
-        Post.objects.filter(thread__in=queryset).update(is_removed=True)
-        super().delete_queryset(request, queryset)
-
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related('posts')
 

@@ -206,7 +206,7 @@ REST_FRAMEWORK = {
     ),
     'SEARCH_PARAM': 'q',
     'DEFAULT_THROTTLE_CLASSES': (
-        'core.throttling.CustomScopedRateThrottle',
+        'core.throttling.BoardScopedRateThrottle',
     ),
     'DEFAULT_THROTTLE_RATES': {
         'thread.create': COOLDOWN_SECONDS_THREAD,

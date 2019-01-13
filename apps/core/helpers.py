@@ -22,21 +22,32 @@ def get_remote_ip(request):
 
 
 def is_proxy_connect(host):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        for port in settings.PROXY_PORTS:
-            sock.connect((host, port))
-    except ConnectionRefusedError:
-        is_proxy = False
-    else:
-        is_proxy = True
-    finally:
-        sock.close()
+    """
+    Проверяем используется ли прокси
+    Пытаемся подключиться к IP по сокетам используя порты из конфига
+    :param str host: IP адрес
+    :return: Идет ли запрос через прокси
+    :rtype: bool
+    """
 
-    return is_proxy
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        for port in settings.PROXY_PORTS:
+            try:
+                sock.connect((host, port))
+            except ConnectionRefusedError:
+                continue
+            else:
+                return True
 
 
 def tripcode(uid):
+    """
+    Генератор трипкод по уникальному идентификатору
+    :param str uid: Уникальный идентификатор
+    :return: Трипкод
+    :rtype: str
+    """
+
     SALT = (
         '................................'
         '.............../0123456789ABCDEF'

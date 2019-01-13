@@ -1,3 +1,4 @@
+from django.conf import settings
 from recaptcha.fields import ReCaptchaField
 from rest_framework import serializers
 
@@ -8,10 +9,17 @@ class FileSerializer(serializers.ModelSerializer):
     size = serializers.ReadOnlyField(source='file.size')
     path = serializers.ReadOnlyField(source='file.url')
     name = serializers.ReadOnlyField()
+    thumbnail = serializers.ReadOnlyField(source='thumbnail.url')
 
     class Meta:
         exclude = ('id', 'post', 'file',)
         model = File
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if representation['type'] == 0:
+            representation.pop('duration', None)
+        return representation
 
 
 class PostSerializer(serializers.ModelSerializer):
@@ -31,6 +39,7 @@ class PostSerializer(serializers.ModelSerializer):
         read_only_fields = (
             'tripcode', 'is_deleted', 'num',
             'parent', 'is_op_post', 'thread',
+            'duration',
         )
         extra_kwargs = {
             'password': {'write_only': True},
@@ -55,7 +64,8 @@ class PostSerializer(serializers.ModelSerializer):
         if files:
             related_files = []
             for file in files:
-                file = File(file=file, post=post, type=0)
+                file_type = 0 if file.content_type in settings.ALLOWED_IMAGE_TYPES else 1
+                file = File(file=file, post=post, type=file_type)
                 file.save()
                 related_files.append(file)
 

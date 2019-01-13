@@ -5,6 +5,11 @@ from rest_framework.response import Response
 
 
 class ThreadPageNumberPagination(PageNumberPagination):
+    """
+    Пагинация для списка тредов. Выводим по 20 тредов на страницу и докидываем
+    общее количество страниц в ответ сервера
+    """
+
     page_size = 20
 
     def get_paginated_response(self, data):
