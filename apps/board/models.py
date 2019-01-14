@@ -277,6 +277,7 @@ class File(models.Model):
 
             self.width = width
             self.height = height
+            self.md5 = md5
 
             self.thumbnail = InMemoryUploadedFile(
                 thumb, None, thumb_name, 'image/jpeg', thumb.tell(), None

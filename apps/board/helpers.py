@@ -72,7 +72,7 @@ def roulette(match):
 
 
 def process_file(file_type, file):
-    file.seek()
+    file.seek(0)
     temp_buffer = io.BytesIO(file.read())
 
     md5 = hashlib.md5()
