@@ -267,21 +267,22 @@ LOGGING = {
 GR_CAPTCHA_SECRET_KEY = env.str('RECAPTCHA_SECRET_KEY', None)
 
 ALLOWED_IMAGE_TYPES = ('image/gif', 'image/jpeg', 'image/png',)
-ALLOWED_VIDEO_TYPES = ('video/wemb',)
-ALLOWED_TAGS = ['b', 'code', 'em', 'i', 'strong']
+ALLOWED_VIDEO_TYPES = ('video/webm',)
+ALLOWED_TAGS = ['b', 'code', 'em', 'i', 'strong', 'br']
 ALLOWED_STYLES = []
 
 PROXY_ALLOWED = env.bool('PROXY_ALLOWED', False)
 PROXY_PORTS = env.list('PROXY_PORTS', int, [80, 8080])
 
 # S3
-# DEFAULT_FILE_STORAGE = 'django_s3_storage.storage.S3Storage'
-# STATICFILES_STORAGE = 'django_s3_storage.storage.StaticS3Storage'
-# AWS_S3_BUCKET_AUTH = False
-# AWS_ACCESS_KEY_ID = "picoboard"
-# AWS_SECRET_ACCESS_KEY = "picoboard_secret"
-# AWS_S3_BUCKET_NAME = 'picoboard'
-# AWS_S3_ADDRESSING_STYLE = "auto"
-# AWS_S3_ENDPOINT_URL = "http://localhost:9001"
-# AWS_S3_MAX_AGE_SECONDS = 60 * 60 * 24
-# AWS_S3_FILE_OVERWRITE = True
+if env.bool('USE_S3_STORAGE', False):
+    DEFAULT_FILE_STORAGE = 'django_s3_storage.storage.S3Storage'
+    STATICFILES_STORAGE = 'django_s3_storage.storage.StaticS3Storage'
+    AWS_S3_BUCKET_AUTH = False
+    AWS_ACCESS_KEY_ID = "picoboard"
+    AWS_SECRET_ACCESS_KEY = "picoboard_secret"
+    AWS_S3_BUCKET_NAME = 'picoboard2'
+    AWS_S3_ADDRESSING_STYLE = "auto"
+    AWS_S3_ENDPOINT_URL = "http://localhost:9001"
+    AWS_S3_MAX_AGE_SECONDS = 60 * 60 * 24
+    AWS_S3_FILE_OVERWRITE = True

@@ -118,17 +118,23 @@ class Thread(models.Model):
         Метод из списка всех постов в тереде
         ищет иденственный пост с пометкой `is_op_post` и возвращает его
         """
-
         for post in self.posts.all():
             if post.is_op_post:
                 return post
 
     @cached_property
     def thread_num(self):
+        """
+        :return: Номер треда
+        :rtype: int
+        """
         return self.op_post.num if self.op_post else -1
 
     @property
     def last_posts(self):
+        """
+        :return: Последние несколько постов в треде или ничего
+        """
         thread_posts = self.posts.all()
         t_length = thread_posts.count()
 
@@ -143,14 +149,34 @@ class Thread(models.Model):
 
     @property
     def posts_count(self):
+        """
+        :return: Количество постов в треде
+        :rtype: int
+        """
         return self.posts.count()
 
     @property
     def files_count(self):
+        """
+        :return: Количество постов в треде
+        :rtype: int
+        """
         return sum([post.files.count() for post in self.posts.all()])
 
     @property
+    def unique_posters(self):
+        """
+        :return: Количество уникальных постеров в треде (кол-во разных ip)
+        :rtype: int
+        """
+        return len(set(post.ip for post in self.posts.all()))
+
+    @property
     def bump_limit(self):
+        """
+        :return: Ушел ли тред в бамплимит
+        :rtype: bool
+        """
         return self.posts_count > self.board.bump_limit
 
     bump_limit.fget.short_description = _('бамп лимит')
@@ -214,6 +240,14 @@ class Post(models.Model):
             self.thread.delete()
 
         super().delete(*args, **kwargs)
+
+    # @cached_property
+    # def op(self):
+    #     """
+    #     :return: Автор поста является создателем треда
+    #     :rtype: bool
+    #     """
+    #     return self.ip == self.thread.op_post.ip
 
 
 class File(models.Model):

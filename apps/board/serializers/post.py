@@ -2,6 +2,7 @@ from django.conf import settings
 from recaptcha.fields import ReCaptchaField
 from rest_framework import serializers
 
+from .. import constants
 from ..models import File, Post
 
 
@@ -17,7 +18,7 @@ class FileSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        if representation['type'] == 0:
+        if representation['type'] == constants.IMAGE_FILE:
             representation.pop('duration', None)
         return representation
 
@@ -33,13 +34,14 @@ class PostSerializer(serializers.ModelSerializer):
     )
     files = FileSerializer(many=True, read_only=True)
 
+    # op = serializers.ReadOnlyField()
+
     class Meta:
         model = Post
         exclude = ('id', 'thread',)
         read_only_fields = (
             'tripcode', 'is_deleted', 'num',
             'parent', 'is_op_post', 'thread',
-            'duration',
         )
         extra_kwargs = {
             'password': {'write_only': True},

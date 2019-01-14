@@ -32,6 +32,7 @@ class ThreadSerializer(serializers.ModelSerializer):
     posts_count = serializers.ReadOnlyField()
     board = serializers.ReadOnlyField(source='board.board')
     files_count = serializers.ReadOnlyField()
+    unique_posters = serializers.ReadOnlyField()
 
     class Meta:
         model = Thread

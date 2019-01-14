@@ -157,7 +157,7 @@ def check_files(files, filesize_limit, image_required):
         file_type = file.content_type
         guessed_ext = mimetypes.guess_all_extensions(file_type)
 
-        if not (file_ext in guessed_ext or file_type in allowed_mimetypes):
+        if file_ext not in guessed_ext or file_type not in allowed_mimetypes:
             raise UnknownFileTypeError
 
         if file_type in settings.ALLOWED_IMAGE_TYPES:
@@ -192,8 +192,9 @@ def process_text(text, enable_roulette):
     post_link_markup = r'<a class="post_link" data-link="\1">>>\1</a>'
     quote_markup = r'\1<span class="quote">\2</span>\3'
 
-    # Уже экранируем не разрешенные html теги
-    # text = re.sub(r'<', '&lt;', text)
+    # Костыль чтобы вернуть > для корректного поиска цитаты
+    text = re.sub(r'&gt;', '>', text, flags=re.M)
+
     text = re.sub(r'(http:.+?)( |\n|$)', http_markup, text, flags=re.M)
     text = re.sub(r'(https:.+?)( |\n|$)', https_markup, text, flags=re.M)
     text = re.sub(r'\*\*(.+?)\*\*', bold_markup, text)
@@ -202,9 +203,10 @@ def process_text(text, enable_roulette):
     text = re.sub(r'%%(.+?)%%', spoiler_markup, text)
     text = re.sub(r'>>([0-9]+)', post_link_markup, text)
     text = re.sub(r'(^|\n)(>.+?)(\n|$)', quote_markup, text, flags=re.M)
-
     if enable_roulette:
         text = re.sub(r'([0-9]+)RL([0-9]+)', roulette, text)
+
+    text = re.sub('\n', '<br>', text, flags=re.M)
 
     return text
 

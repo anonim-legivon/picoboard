@@ -1,10 +1,13 @@
 version: '3'
 
 services:
+  picoboard:
+    build: .
+
   postgres:
     image: postgres:10-alpine
     ports:
-      - "15432:5432"
+      - "25432:5432"
     volumes:
       - ./etc/postgresql-data:/var/lib/postgresql/data
     env_file:
@@ -13,7 +16,7 @@ services:
   redis:
     image: redis:5-alpine
     ports:
-      - "16379:6379"
+      - "26379:6379"
 
   minio:
     image: minio/minio
@@ -25,3 +28,25 @@ services:
       - MINIO_ACCESS_KEY=picoboard
       - MINIO_SECRET_KEY=picoboard_secret
     command: server --address 0.0.0.0:9000 /data
+
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add minio http://minio:9000 picoboard picoboard_secret;
+      /usr/bin/mc mb minio/pico;
+      /usr/bin/mc policy download minio/pico;
+      exit 0;
+      "
+
+  nginx:
+    image: nginx
+    restart: always
+    ports:
+      - "5000:5000"
+    depends_on:
+      - picoboard
+    volumes:
+      - ./deploy-configs/nginx.conf:/etc/nginx/nginx.conf
