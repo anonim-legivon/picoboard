@@ -1,9 +1,6 @@
-import hashlib
-import io
 import re
 from os.path import basename, splitext
 
-from django.core.files.images import get_image_dimensions
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db import models
 from django.utils import timezone
@@ -13,8 +10,9 @@ from django_regex.fields import RegexField
 from model_utils.models import SoftDeletableModel
 from netfields import CidrAddressField, NetManager
 
+from . import constants
 from .helpers import (
-    make_thumb, resolve_save_path, resolve_thumb_path
+    process_file, resolve_save_path, resolve_thumb_path
 )
 
 
@@ -219,12 +217,9 @@ class Post(models.Model):
 
 
 class File(models.Model):
-    IMAGE = 0
-    VIDEO = 1
-
     TYPES = (
-        (IMAGE, _('картинка')),
-        (VIDEO, _('видео'))
+        (constants.IMAGE_FILE, _('картинка')),
+        (constants.VIDEO_FILE, _('видео'))
     )
     file = models.FileField(
         _('файл'), upload_to=resolve_save_path,
@@ -263,34 +258,25 @@ class File(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.pk:
-            if self.type == self.IMAGE:
-                width, height = get_image_dimensions(self.file.file)
-                self.width = width
-                self.height = height
-
             self.fullname = self.file.name
+
             now = timezone.now()
             timestamp = int(now.timestamp() * 10000)
             ext = splitext(self.file.name)[1].lower()
+
             self.file.name = f'{timestamp}{ext}'
             thumb_name = f'{timestamp}s.jpg'
 
-            self.file.seek(0)
-            temp_buffer = io.BytesIO(self.file.read())
-
-            md5 = hashlib.md5()
-            md5.update(temp_buffer.getvalue())
-            self.md5 = md5.hexdigest()
-
-            if self.type == self.VIDEO:
-                thumb, duration, width, height = make_thumb(
-                    self.type, temp_buffer
-                )
-                self.width = width
-                self.height = height
-                self.duration = duration
+            if self.type == constants.IMAGE_FILE:
+                thumb, md5, width, height = process_file(self.type, self.file)
             else:
-                thumb = make_thumb(self.type, temp_buffer)
+                thumb, md5, duration, width, height = process_file(
+                    self.type, self.file
+                )
+                self.duration = duration
+
+            self.width = width
+            self.height = height
 
             self.thumbnail = InMemoryUploadedFile(
                 thumb, None, thumb_name, 'image/jpeg', thumb.tell(), None
