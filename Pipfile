@@ -15,7 +15,7 @@ isort = "*"
 
 [packages]
 django = "==2.1.5"
-amqp = "==2.3.2"
+amqp = "==2.4.0"
 django-cors-headers = "==2.4.0"
 django-environ = "==0.4.5"
 django-extensions = "==2.1.4"
