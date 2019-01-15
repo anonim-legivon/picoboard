@@ -216,6 +216,7 @@ class Post(models.Model):
     )
     comment = models.TextField(_('сообщение'), blank=True, default='')
     sage = models.BooleanField(_('sage'), default=False, blank=True)
+    op = models.BooleanField(_('OP'), default=False, blank=True)
 
     class Meta:
         verbose_name = _('пост')
@@ -240,14 +241,6 @@ class Post(models.Model):
             self.thread.delete()
 
         super().delete(*args, **kwargs)
-
-    # @cached_property
-    # def op(self):
-    #     """
-    #     :return: Автор поста является создателем треда
-    #     :rtype: bool
-    #     """
-    #     return self.ip == self.thread.op_post.ip
 
 
 class File(models.Model):
@@ -291,31 +284,30 @@ class File(models.Model):
         return f'{self.file.name}'
 
     def save(self, *args, **kwargs):
-        if not self.pk:
-            self.fullname = self.file.name
+        if self.pk:
+            # the File object is immutable
+            return
 
-            now = timezone.now()
-            timestamp = int(now.timestamp() * 10000)
-            ext = splitext(self.file.name)[1].lower()
+        self.fullname = self.file.name
 
-            self.file.name = f'{timestamp}{ext}'
-            thumb_name = f'{timestamp}s.jpg'
+        now = timezone.now()
+        timestamp = int(now.timestamp() * 10000)
+        ext = splitext(self.file.name)[1].lower()
 
-            if self.type == constants.IMAGE_FILE:
-                thumb, md5, width, height = process_file(self.type, self.file)
-            else:
-                thumb, md5, duration, width, height = process_file(
-                    self.type, self.file
-                )
-                self.duration = duration
+        self.file.name = f'{timestamp}{ext}'
+        thumb_name = f'{timestamp}s.jpg'
 
-            self.width = width
-            self.height = height
-            self.md5 = md5
+        file_data = process_file(self.type, self.file)
 
-            self.thumbnail = InMemoryUploadedFile(
-                thumb, None, thumb_name, 'image/jpeg', thumb.tell(), None
-            )
+        self.width = file_data['width']
+        self.height = file_data['height']
+        self.duration = file_data['duration'] or None
+        self.md5 = file_data['md5']
+
+        thumb = file_data['thumb']
+        self.thumbnail = InMemoryUploadedFile(
+            thumb, None, thumb_name, 'image/jpeg', thumb.tell(), None
+        )
 
         super().save(*args, **kwargs)
 

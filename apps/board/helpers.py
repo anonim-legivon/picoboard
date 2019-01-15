@@ -5,7 +5,6 @@ import random
 import subprocess
 
 from PIL import Image
-from django.core.files.images import get_image_dimensions
 from django.utils import timezone
 
 from . import constants
@@ -80,33 +79,33 @@ def process_file(file_type, file):
     md5 = md5.hexdigest()
 
     if file_type == constants.IMAGE_FILE:
-        thumb = Image.open(temp_buffer)
-        width, height = get_image_dimensions(thumb)
+        image = Image.open(temp_buffer)
+        original_width, original_height = image.size
+        duration = 0
 
-        if thumb.mode in ('RGBA', 'LA'):
-            background = Image.new(thumb.mode[:-1], thumb.size,
+        if image.mode in ('RGBA', 'LA'):
+            background = Image.new(image.mode[:-1], image.size,
                                    (255, 255, 255))
-            background.paste(thumb, thumb.split()[-1])
-            thumb = background
+            background.paste(image, image.split()[-1])
+            image = background
 
-        size = thumb.size
-        if size[0] > size[1]:
-            scale_factor = 500 / size[0]
+        if original_width > original_height:
+            scale_factor = 200 / original_width
         else:
-            scale_factor = 500 / size[1]
+            scale_factor = 220 / original_height
 
-        new_width = int(thumb.width * scale_factor)
-        new_height = int(thumb.height * scale_factor)
+        thumb_width = int(image.width * scale_factor)
+        thumb_height = int(image.height * scale_factor)
 
-        thumb = thumb.resize((new_width, new_height), Image.LANCZOS)
+        thumb = image.resize((thumb_width, thumb_height), Image.LANCZOS)
         thumb = thumb.convert("RGB")
 
         temp_buffer = io.BytesIO()
         thumb.save(temp_buffer, "JPEG")
 
-        return io.BytesIO(temp_buffer.getvalue()), md5, width, height
+        thumb_stream = io.BytesIO(temp_buffer.getvalue())
 
-    elif file_type == constants.VIDEO_FILE:
+    else:
         _FFMPEG_FLAGS = ' '.join([
             '-hide_banner',
             '-loglevel quiet',
@@ -143,7 +142,15 @@ def process_file(file_type, file):
         file_format = ffprobe_result_json['format']
         duration = int(float(file_format.get('duration', 0)))
         stream = file_streams[0]
-        width = stream.get('width', 0)
-        height = stream.get('height', 0)
+        original_width = stream.get('width', 0)
+        original_height = stream.get('height', 0)
 
-        return io.BytesIO(ffmpeg_result.stdout), md5, duration, width, height
+        thumb_stream = io.BytesIO(ffmpeg_result.stdout)
+
+    return {
+        'thumb': thumb_stream,
+        'md5': md5,
+        'width': original_width,
+        'height': original_height,
+        'duration': duration
+    }

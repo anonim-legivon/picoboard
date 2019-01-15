@@ -25,6 +25,7 @@ def post_processing(request, serializer, **kwargs):
     comment = serializer.validated_data.get('comment')
     sage = serializer.validated_data.get('sage')
     files = serializer.validated_data.get('post_files')
+    op = serializer.validated_data.get('op', False)
 
     try:
         board = Board.objects.get(board=board_name)
@@ -60,6 +61,9 @@ def post_processing(request, serializer, **kwargs):
 
         is_op_post = False
         parent = thread.thread_num
+
+        op = True if op and thread.op_post.ip == ip else False
+
     else:
         thread = Thread.objects.create(board=board)
         is_op_post = True
@@ -71,6 +75,7 @@ def post_processing(request, serializer, **kwargs):
     serializer.context['is_op_post'] = is_op_post
     serializer.context['parent'] = parent
     serializer.context['comment'] = process_text(comment, board.enable_roulette)
+    serializer.context['op'] = op
 
     name = serializer.validated_data.get('name') or board.default_name
 

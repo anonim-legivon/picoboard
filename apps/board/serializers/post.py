@@ -55,6 +55,7 @@ class PostSerializer(serializers.ModelSerializer):
 
         validated_data.pop('recaptcha', None)
         validated_data['comment'] = self.context.get('comment')
+        validated_data['op'] = self.context.get('op')
 
         files = validated_data.pop('post_files', None)
 
@@ -66,7 +67,11 @@ class PostSerializer(serializers.ModelSerializer):
         if files:
             related_files = []
             for file in files:
-                file_type = 0 if file.content_type in settings.ALLOWED_IMAGE_TYPES else 1
+                file_type = (
+                    constants.IMAGE_FILE
+                    if file.content_type in settings.ALLOWED_IMAGE_TYPES else
+                    constants.VIDEO_FILE
+                )
                 file = File(file=file, post=post, type=file_type)
                 file.save()
                 related_files.append(file)
