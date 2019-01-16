@@ -11,9 +11,8 @@ from model_utils.models import SoftDeletableModel
 from netfields import CidrAddressField, NetManager
 
 from . import constants
-from .helpers import (
-    process_file, resolve_save_path, resolve_thumb_path
-)
+from .files import process_file
+from .helpers import resolve_save_path, resolve_thumb_path
 
 
 class Category(models.Model):
@@ -47,6 +46,9 @@ class Board(models.Model):
     filesize_limit = models.PositiveIntegerField(
         _('лимит на размер файлов'), default=(2 ** 20) * 20
     )
+    max_files = models.PositiveSmallIntegerField(
+        _('максимум файлов в посте'), default=4
+    )
     enable_trips = models.BooleanField(_('разрешены трип коды'), default=False)
     trip_required = models.BooleanField(
         _('генерировать трип код'), default=False
@@ -61,8 +63,8 @@ class Board(models.Model):
     )
     enable_roulette = models.BooleanField(_('включены кубики'), default=False)
     is_hidden = models.BooleanField(_('доска скрыта'), default=False)
-    image_required = models.BooleanField(
-        _('требовать изображение'), default=False
+    file_required = models.BooleanField(
+        _('требовать файл в оп посте'), default=True
     )
 
     class Meta:
@@ -285,7 +287,6 @@ class File(models.Model):
 
     def save(self, *args, **kwargs):
         if self.pk:
-            # the File object is immutable
             return
 
         self.fullname = self.file.name
@@ -334,7 +335,6 @@ class SpamWord(models.Model):
     def __str__(self):
         return f'{self.expression.pattern}'
 
-    # TODO: Условия сохранения полей
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
 

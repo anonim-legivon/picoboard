@@ -10,7 +10,7 @@ from board.exceptions import PostThrottled
 from core.mixins import CreateListRetrieveMixin
 from .models import Board, Category, Thread
 from .pagination import ThreadPageNumberPagination
-from .processing import post_processing
+from .processing import process_post
 from .serializers import (
     BoardSerializer,
     CategorySerializer,
@@ -75,8 +75,6 @@ class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    # TODO: create и post совпадают, возможно стоит вынести в отдельную функцию,
-    #       но в дальнейшем может измениться
     def create(self, request, *args, **kwargs):
         serializer = PostSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -86,17 +84,12 @@ class ThreadViewSet(CreateListRetrieveMixin, GenericViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED,
                         headers=headers)
 
-    # TODO: Так как функции совпадают пока заменил на вызов create
     @action(detail=True, methods=['post'], url_path='post', url_name='post')
     def new_post(self, request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
 
     def perform_create(self, serializer, **kwargs):
-        serializer, post_kwargs = post_processing(
-            self.request, serializer, **self.kwargs
-        )
-
-        serializer.save(**post_kwargs)
+        process_post(self.request, serializer, **self.kwargs)
 
 
 class BoardViewSet(CacheResponseMixin, ReadOnlyModelViewSet, GenericViewSet):

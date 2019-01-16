@@ -9,23 +9,26 @@ from django.utils import timezone
 
 from core import helpers
 from .exceptions import (
-    BoardNotFound, FileSizeLimitError, ImageRequiredError, ProxyDisallowed,
-    ThreadClosedError, ThreadNotFound, UnknownFileTypeError, UserBannedError,
-    WordInSpamListError
+    BoardNotFound, CommentRequiredError, FileCountLimitError, FileRequiredError,
+    FileSizeLimitError, ProxyDisallowed, ThreadClosedError, ThreadNotFound,
+    UnknownFileTypeError, UserBannedError, WordInSpamListError
 )
 from .helpers import roulette
 from .models import Ban, Board, SpamWord, Thread
 
 
-def post_processing(request, serializer, **kwargs):
-    board_name = kwargs.get('board_board')
-    thread_id = kwargs.get('posts__num')
+def process_post(request, serializer, **kwargs):
+    data: dict = serializer.validated_data
 
-    subject = serializer.validated_data.get('subject', '')[:40]
-    comment = serializer.validated_data.get('comment')
-    sage = serializer.validated_data.get('sage')
-    files = serializer.validated_data.get('post_files')
-    op = serializer.validated_data.get('op', False)
+    board_name: str = kwargs.get('board_board')
+    thread_id: int = kwargs.get('posts__num')
+
+    subject: str = data.get('subject', '')[:40]
+    comment: str = data.get('comment')
+    name: str = data.get('name')
+    sage: bool = data.get('sage')
+    files: list = data.get('post_files')
+    op: bool = data.get('op', False)
 
     try:
         board = Board.objects.get(board=board_name)
@@ -46,9 +49,13 @@ def post_processing(request, serializer, **kwargs):
     check_spam(board, subject, comment)
 
     if files:
-        check_files(files, board.filesize_limit, board.image_required)
-    elif board.image_required:
-        raise ImageRequiredError
+        if len(files) > board.max_files:
+            raise FileCountLimitError
+        check_files(files, board.filesize_limit)
+    elif not ((thread_id and comment) and (files or comment)):
+        raise CommentRequiredError
+    elif not thread_id and board.file_required:
+        raise FileRequiredError
 
     if thread_id:
         try:
@@ -61,7 +68,6 @@ def post_processing(request, serializer, **kwargs):
 
         is_op_post = False
         parent = thread.thread_num
-
         op = True if op and thread.op_post.ip == ip else False
 
     else:
@@ -71,31 +77,29 @@ def post_processing(request, serializer, **kwargs):
 
         trim_database(board)
 
+    poster_name = name or board.default_name
+    name_trip = helpers.gen_tripcode(poster_name, board.enable_trips)
+    require_trip = helpers.require_trip(ip) if board.trip_required else ''
+    processed_name = (
+        name_trip['name'] if board.enable_names else board.default_name
+    )
+    tripcode = require_trip or name_trip['trip']
+
     serializer.context['thread'] = thread
     serializer.context['is_op_post'] = is_op_post
     serializer.context['parent'] = parent
     serializer.context['comment'] = process_text(comment, board.enable_roulette)
     serializer.context['op'] = op
 
-    name = serializer.validated_data.get('name') or board.default_name
-
-    name_trip = helpers.gen_tripcode(name, board.enable_trips)
-    require_trip = helpers.require_trip(ip) if board.trip_required else ''
-
-    name = (
-        name_trip['name'] if board.enable_names else board.default_name
-    )
-    tripcode = require_trip or name_trip['trip']
-
     post_kwargs = {
-        'name': name,
+        'name': processed_name,
         'tripcode': tripcode,
         'ip': ip,
         'subject': subject,
         'sage': sage,
     }
 
-    return serializer, post_kwargs
+    serializer.save(**post_kwargs)
 
 
 def check_ban(ip, board):
@@ -105,7 +109,6 @@ def check_ban(ip, board):
     :param board: Текущая доска
     :raises: UserBannedError, если постер заблокирован
     """
-
     now = timezone.now()
 
     q = (
@@ -130,7 +133,6 @@ def check_spam(board, *args):
     :type args: str
     :param board: Доска
     """
-
     spam_filters = SpamWord.objects.filter(
         Q(for_all_boards=True) | Q(boards=board)
     ).values_list('expression', flat=True)
@@ -148,14 +150,13 @@ def check_spam(board, *args):
         raise WordInSpamListError
 
 
-def check_files(files, filesize_limit, image_required):
+def check_files(files, filesize_limit):
     allowed_mimetypes = (
         *settings.ALLOWED_IMAGE_TYPES,
         *settings.ALLOWED_VIDEO_TYPES,
     )
 
     total_filesize = sum(f.size for f in files)
-    has_image = False
 
     for file in files:
         file_ext = splitext(file.name)[1].lower()
@@ -164,12 +165,6 @@ def check_files(files, filesize_limit, image_required):
 
         if file_ext not in guessed_ext or file_type not in allowed_mimetypes:
             raise UnknownFileTypeError
-
-        if file_type in settings.ALLOWED_IMAGE_TYPES:
-            has_image = True
-
-    if image_required and not has_image:
-        raise ImageRequiredError
 
     if total_filesize > filesize_limit:
         raise FileSizeLimitError
@@ -183,13 +178,11 @@ def process_text(text, enable_roulette):
     :return: Сообщение с разметкой и экранированным html
     :rtype: str
     """
-
     allowed_tags = settings.ALLOWED_TAGS
     allowed_styles = settings.ALLOWED_STYLES
     text = bleach.clean(text, tags=allowed_tags, styles=allowed_styles)
 
-    http_markup = r'<a href="\1" target="_blank">\1</a>\2'
-    https_markup = r'<a href="\1" target="_blank">\1</a>\2'
+    link_markup = r'<a href="\1" target="_blank">\1</a>\2'
     bold_markup = r'<b class="bold">\1</b>'
     italic_markup = r'<strong class="italic">\1</strong>'
     crossed_markup = r'<em class="crossed">\1</em>'
@@ -200,8 +193,7 @@ def process_text(text, enable_roulette):
     # Костыль чтобы вернуть > для корректного поиска цитаты
     text = re.sub(r'&gt;', '>', text, flags=re.M)
 
-    text = re.sub(r'(http:.+?)( |\n|$)', http_markup, text, flags=re.M)
-    text = re.sub(r'(https:.+?)( |\n|$)', https_markup, text, flags=re.M)
+    text = re.sub(r'(https?:.+?)( |\n|$)', link_markup, text, flags=re.M)
     text = re.sub(r'\*\*(.+?)\*\*', bold_markup, text)
     text = re.sub(r'\*(.+?)\*', italic_markup, text)
     text = re.sub(r'__(.+?)__', crossed_markup, text)
@@ -225,7 +217,6 @@ def trim_database(board):
     :return: Количество удаленных тредов
     :rtype: int
     """
-
     deleted_count = 0
     max_threads = board.thread_limit
     total_threads = board.threads.count()

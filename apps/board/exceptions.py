@@ -54,16 +54,28 @@ class FileSizeLimitError(APIException):
     default_code = 'file_size_limit'
 
 
+class FileCountLimitError(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = _('Превышен лимит на количество файлов')
+    default_code = 'file_count_limit'
+
+
 class UnknownFileTypeError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = _('Один или несколько файлов не поддерживаются')
     default_code = 'unknown_file_type'
 
 
-class ImageRequiredError(APIException):
+class FileRequiredError(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
-    default_detail = _('Доска требует картинку в посте')
-    default_code = 'image_required'
+    default_detail = _('Доска требует файл в оп посте')
+    default_code = 'file_required'
+
+
+class CommentRequiredError(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = _('Требуется комментарий или файл')
+    default_code = 'comment_required'
 
 
 class PostThrottled(Throttled):

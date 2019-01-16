@@ -26,15 +26,13 @@ class FileSerializer(serializers.ModelSerializer):
 class PostSerializer(serializers.ModelSerializer):
     recaptcha = ReCaptchaField(write_only=True)
     comment = serializers.CharField(
-        required=True, min_length=4, max_length=15000
+        required=True, max_length=15000, allow_blank=True
     )
     post_files = serializers.ListField(
         child=serializers.FileField(use_url=False),
         required=False, write_only=True
     )
     files = FileSerializer(many=True, read_only=True)
-
-    # op = serializers.ReadOnlyField()
 
     class Meta:
         model = Post
