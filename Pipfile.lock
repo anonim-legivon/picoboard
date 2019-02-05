@@ -40,17 +40,17 @@
         },
         "boto3": {
             "hashes": [
-                "sha256:63cd957ba663f5c10ff48ed904575eaa701314f79f18dbc59bd050311cd5f809",
-                "sha256:d1338582bc58741f54bd6b43488de6097a82ea45cebed0a3fd936981eadbb3a5"
+                "sha256:50d8bcf0b25719963cd6aa4ee1e95a24d642a78427fe90a5cdc5a32e5e05fab3",
+                "sha256:9ccd57a0884d8d827a2e0107f1d38677efa47fb0892e1bfab331333c461d8898"
             ],
-            "version": "==1.9.86"
+            "version": "==1.9.87"
         },
         "botocore": {
             "hashes": [
-                "sha256:24444e7580f0114c3e9fff5d2032c6f0cfbf88691b1be3ba27c6922507a902ec",
-                "sha256:5b01a16f02c3da55068b3aacfa1c37dd8e17141551e1702424b38dd21fa1c792"
+                "sha256:9914810e0b6145f3d6673adfb7612d22f92a422e8bdf763c3256316230d23a64",
+                "sha256:c12ddc6dc32933cab30d8904395c3bd209563b6b9ed7d9cbbe658c1d442639e2"
             ],
-            "version": "==1.12.86"
+            "version": "==1.12.87"
         },
         "celery": {
             "hashes": [
@@ -368,10 +368,10 @@
         },
         "atomicwrites": {
             "hashes": [
-                "sha256:0312ad34fcad8fac3704d441f7b317e50af620823353ec657a53e981f92920c0",
-                "sha256:ec9ae8adaae229e4f8446952d204a3e4b5fdd2d099f9be3aaf556120135fb3ee"
+                "sha256:03472c30eb2c5d1ba9227e4c2ca66ab8287fbfbbda3888aa93dc2e28fc6811b4",
+                "sha256:75a9445bac02d8d058d5e1fe689654ba5a6556a1dfd8ce6ec55a0ed79866cfa6"
             ],
-            "version": "==1.2.1"
+            "version": "==1.3.0"
         },
         "attrs": {
             "hashes": [
@@ -431,11 +431,11 @@
         },
         "flake8": {
             "hashes": [
-                "sha256:09b9bb539920776da542e67a570a5df96ff933c9a08b62cfae920bcc789e4383",
-                "sha256:e0f8cd519cfc0072c0ee31add5def09d2b3ef6040b34dc426445c3af9b02163c"
+                "sha256:c3ba1e130c813191db95c431a18cb4d20a468e98af7a77e2181b68574481ad36",
+                "sha256:fd9ddf503110bf3d8b1d270e8c673aab29ccb3dd6abf29bae1f54e5116ab4a91"
             ],
             "index": "pypi",
-            "version": "==3.7.4"
+            "version": "==3.7.5"
         },
         "isort": {
             "hashes": [
