@@ -14,7 +14,7 @@ flake8 = "*"
 isort = "*"
 
 [packages]
-django = "==2.2"
+django = "==2.2.1"
 amqp = "==2.4.2"
 django-cors-headers = "==3.0.0"
 django-environ = "==0.4.5"
